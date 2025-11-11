@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import net.vornyx.chatroom.dto.UserDto;
 import net.vornyx.chatroom.entities.User;
 import net.vornyx.chatroom.repositories.UserRepository;
@@ -19,7 +21,6 @@ import net.vornyx.chatroom.util.JwtService;
 @RequestMapping("/auth")
 public class AuthController {
 
-
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
     private final AuthenticationManager authenticationManager;
@@ -28,7 +29,7 @@ public class AuthController {
     public AuthController(AuthenticationManager authenticationManager, UserRepository userRepository, JwtService jwtService, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.authenticationManager = authenticationManager;
-        this.jwtService = jwtService; 
+        this.jwtService = jwtService;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -46,7 +47,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody UserDto dto) {
+    public ResponseEntity<?> login(@RequestBody UserDto dto, HttpServletResponse response) {
         Authentication auth = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(dto.getUsername(), dto.getPassword())
         );
@@ -54,7 +55,28 @@ public class AuthController {
         User user = (User) auth.getPrincipal();
         String token = jwtService.generateToken(user);
 
+        Cookie cookie = new Cookie("jwt", token);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(false); // Set to true in production with HTTPS
+        cookie.setPath("/");
+        cookie.setMaxAge(24 * 60 * 60); // 24 hours in seconds
+        response.addCookie(cookie);
+
         return ResponseEntity.ok(token);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(HttpServletResponse response) {
+
+        Cookie cookie = new Cookie("jwt", "");
+
+        cookie.setPath("/");
+        cookie.setHttpOnly(true);
+        cookie.setMaxAge(0);
+
+        response.addCookie(cookie);
+
+        return ResponseEntity.ok("Logged out successfully");
     }
 
 }
