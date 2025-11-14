@@ -1,14 +1,14 @@
-package net.vornyx.chatroom.controllers;
+// package net.vornyx.chatroom.controllers;
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
+// import org.springframework.web.bind.annotation.GetMapping;
+// import org.springframework.web.bind.annotation.RestController;
 
-@RestController
-public class MainController {
+// @RestController
+// public class MainController {
 
-    @GetMapping("/")
-    public String hello() {
-        return "index.html";
-    }
-}
+//     @GetMapping("/")
+//     public String hello() {
+//         return "index.html";
+//     }
+// }
 

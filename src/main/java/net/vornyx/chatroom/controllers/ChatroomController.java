@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,11 +19,15 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.transaction.Transactional;
+import net.vornyx.chatroom.dto.MessageResponseDto;
+import net.vornyx.chatroom.dto.ReactMessageDto;
 import net.vornyx.chatroom.entities.Message;
+import net.vornyx.chatroom.entities.Reaction;
 import net.vornyx.chatroom.entities.Room;
 import net.vornyx.chatroom.entities.RoomMember;
 import net.vornyx.chatroom.entities.User;
 import net.vornyx.chatroom.repositories.MessageRepository;
+import net.vornyx.chatroom.repositories.ReactionRepository;
 import net.vornyx.chatroom.repositories.RoomMemberRepository;
 import net.vornyx.chatroom.repositories.RoomRepository;
 import net.vornyx.chatroom.repositories.UserRepository;
@@ -44,10 +49,13 @@ class ChatroomController {
     @Autowired
     private MessageRepository messageRepository;
 
-    @PostMapping("/")
+    @Autowired
+    private ReactionRepository reactionRepository;
+
+    @PostMapping("")
     public ResponseEntity<String> newRoom(@AuthenticationPrincipal User user, @RequestBody Room room) {
         Room savedRoom = roomRepository.save(room);
-
+ 
         RoomMember roomMember = new RoomMember(user, savedRoom);
 
         roomMemberRepository.save(roomMember);
@@ -55,7 +63,7 @@ class ChatroomController {
         return ResponseEntity.ok("Room Created Successfully");
     }
 
-    @GetMapping("/")
+    @GetMapping("")
     public ResponseEntity<List<Room>> roomList(@AuthenticationPrincipal User user) {
         List<RoomMember> roomMemberList = roomMemberRepository.findByUser(user);
         List<Room> roomList = roomMemberList.stream().map(RoomMember::getRoom).toList();
@@ -91,7 +99,7 @@ class ChatroomController {
     }
 
     @GetMapping("/{roomId}/messages")
-    public ResponseEntity<List<Message>> getMessages(
+    public ResponseEntity<List<MessageResponseDto>> getMessages(
             @AuthenticationPrincipal User user,
             @PathVariable Integer roomId,
             @RequestParam(required = false) Integer before,
@@ -107,21 +115,47 @@ class ChatroomController {
 
         List<Message> messages;
 
-
         if (before == null) {
-            // Load newest messages
             messages = messageRepository
-                    .findByRoomOrderByIdDesc(room, PageRequest.of(0, limit));
+                    .findByMessageId_RoomIdOrderByIdDesc(room.getId(), PageRequest.of(0, limit));
         } else {
-            // Load messages *before* given id
             messages = messageRepository
-                    .findByRoomAndIdLessThanOrderByIdDesc(room, before, PageRequest.of(0, limit));
+                    .findByMessageId_RoomIdAndIdLessThanOrderByIdDesc(room.getId(), before, PageRequest.of(0, limit));
         }
 
-        // Return in normal chronological order
         Collections.reverse(messages);
 
-        return ResponseEntity.ok(messages);
+        // Convert to DTOs with usernames
+        List<MessageResponseDto> responseDtos = messages.stream()
+            .map(message -> {
+                User messageUser = userRepository.findById(message.getMessageId().getUserId())
+                        .orElseThrow(() -> new RuntimeException("User not found"));
+
+                // Fetch reactions for this message
+                List<Reaction> reactions = reactionRepository.findByReactionId_MessageId(message.getId());
+
+                List<ReactMessageDto> reactionDtos = reactions.stream()
+                        .map(reaction -> {
+                            User reactionUser = userRepository.findById(reaction.getReactionId().getUserId())
+                                    .orElseThrow(() -> new RuntimeException("User not found"));
+                            return new ReactMessageDto(reaction, reactionUser.getUsername(), reaction.getEmoji());
+                        })
+                        .toList();
+                MessageResponseDto response = new MessageResponseDto(message, messageUser.getUsername());
+                response.setReactions(reactionDtos);
+                return response;
+            })
+            .toList();
+
+        return ResponseEntity.ok(responseDtos);
+    }
+
+    @DeleteMapping("/{roomId}")
+    public ResponseEntity<String> deleteRoom(@AuthenticationPrincipal User user, @PathVariable Integer roomId) {
+        messageRepository.deleteAllByMessageId_RoomId(roomId);
+        roomMemberRepository.deleteAllById_RoomId(roomId);
+        roomRepository.deleteById(roomId);
+        return ResponseEntity.ok("Room successfully deleted");
     }
 
 }

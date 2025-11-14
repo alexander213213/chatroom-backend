@@ -1,15 +1,23 @@
 package net.vornyx.chatroom.entities;
 
+import java.time.LocalDateTime;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
 @Table(name = "messages")
+@Getter
+@Setter
 public class Message {
 
     @Id
@@ -22,36 +30,18 @@ public class Message {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String content;
 
+    @ManyToOne
+    @JoinColumn(name = "reply_to") // FK -> messages.id
+    private Message replyTo;
+    
+
+    private LocalDateTime created_at;
+
     public Message() {
     }
 
     public Message(MessageId messageId, String content) {
         this.messageId = messageId;
-        this.content = content;
-    }
-
-    // getters and setters
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public MessageId getMessageId() {
-        return messageId;
-    }
-
-    public void setMessageId(MessageId messageId) {
-        this.messageId = messageId;
-    }
-
-    public String getContent() {
-        return content;
-    }
-
-    public void setContent(String content) {
         this.content = content;
     }
 }

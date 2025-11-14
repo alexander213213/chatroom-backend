@@ -1,6 +1,18 @@
 package net.vornyx.chatroom.dto;
 
-public record TypingDto(
-        String username,
-        boolean typing
-) {}
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+
+
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class TypingDto {
+    private String username;
+    private boolean typing;
+}

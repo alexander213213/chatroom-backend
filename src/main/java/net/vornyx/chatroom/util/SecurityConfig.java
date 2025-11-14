@@ -34,7 +34,7 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/auth/**").permitAll() // allow login & register
+                .requestMatchers("/auth/**", "/", "/index.html", "/favicon.ico").permitAll() // allow login & register
                 .anyRequest().authenticated() // protect the rest
                 )
                 .userDetailsService(userDetailsService)
