@@ -20,13 +20,16 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.transaction.Transactional;
 import net.vornyx.chatroom.dto.MessageResponseDto;
+import net.vornyx.chatroom.dto.NoteDto;
 import net.vornyx.chatroom.dto.ReactMessageDto;
 import net.vornyx.chatroom.entities.Message;
+import net.vornyx.chatroom.entities.Note;
 import net.vornyx.chatroom.entities.Reaction;
 import net.vornyx.chatroom.entities.Room;
 import net.vornyx.chatroom.entities.RoomMember;
 import net.vornyx.chatroom.entities.User;
 import net.vornyx.chatroom.repositories.MessageRepository;
+import net.vornyx.chatroom.repositories.NoteRepository;
 import net.vornyx.chatroom.repositories.ReactionRepository;
 import net.vornyx.chatroom.repositories.RoomMemberRepository;
 import net.vornyx.chatroom.repositories.RoomRepository;
@@ -52,8 +55,12 @@ class ChatroomController {
     @Autowired
     private ReactionRepository reactionRepository;
 
+    @Autowired
+    private NoteRepository noteRepository;
+
     @PostMapping("")
     public ResponseEntity<String> newRoom(@AuthenticationPrincipal User user, @RequestBody Room room) {
+        room.setUser(user);
         Room savedRoom = roomRepository.save(room);
  
         RoomMember roomMember = new RoomMember(user, savedRoom);
@@ -150,8 +157,53 @@ class ChatroomController {
         return ResponseEntity.ok(responseDtos);
     }
 
+    @GetMapping("/{roomId}/Notes")
+    public ResponseEntity<List<NoteDto>> getNotes(
+            @AuthenticationPrincipal User user,
+            @PathVariable Integer roomId,
+            @RequestParam(required = false) Integer before,
+            @RequestParam(defaultValue = "20") int limit
+    ) {
+        Room room = roomRepository.findById(roomId)
+                .orElseThrow(() -> new RuntimeException("Room not found"));
+
+        boolean isMember = roomMemberRepository.existsByUserAndRoom(user, room);
+        if (!isMember) {
+            return ResponseEntity.status(403).body(null);
+        }
+
+        List<Note> Notes;
+
+        if (before == null) {
+            Notes = noteRepository
+                    .findByNoteId_RoomIdOrderByIdDesc(room.getId(), PageRequest.of(0, limit));
+        } else {
+            Notes = noteRepository
+                    .findByNoteId_RoomIdAndIdLessThanOrderByIdDesc(room.getId(), before, PageRequest.of(0, limit));
+        }
+
+        Collections.reverse(Notes);
+
+        // Convert to DTOs with usernames
+        List<NoteDto> noteDtos = Notes.stream()
+            .map(Note -> {
+                User noteUser = userRepository.findById(Note.getNoteId().getUserId())
+                        .orElseThrow(() -> new RuntimeException("User not found"));
+
+            
+                NoteDto response = new NoteDto(roomId, noteUser.getUsername(), Note.getContent());
+                return response;
+            })
+            .toList();
+
+        return ResponseEntity.ok(noteDtos);
+    }
+
     @DeleteMapping("/{roomId}")
     public ResponseEntity<String> deleteRoom(@AuthenticationPrincipal User user, @PathVariable Integer roomId) {
+        if (!user.getId().equals(roomRepository.findById(roomId).get().getUser().getId())) {
+            return ResponseEntity.status(403).body("User is not the owner of room");
+        }
         messageRepository.deleteAllByMessageId_RoomId(roomId);
         roomMemberRepository.deleteAllById_RoomId(roomId);
         roomRepository.deleteById(roomId);

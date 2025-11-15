@@ -11,15 +11,19 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 
 import net.vornyx.chatroom.dto.MessageResponseDto;
+import net.vornyx.chatroom.dto.NoteDto;
 import net.vornyx.chatroom.dto.ReactMessageDto;
 import net.vornyx.chatroom.dto.SendMessageDto;
 import net.vornyx.chatroom.dto.TypingDto;
 import net.vornyx.chatroom.entities.Message;
 import net.vornyx.chatroom.entities.MessageId;
+import net.vornyx.chatroom.entities.Note;
+import net.vornyx.chatroom.entities.NoteId;
 import net.vornyx.chatroom.entities.Reaction;
 import net.vornyx.chatroom.entities.ReactionId;
 import net.vornyx.chatroom.entities.User;
 import net.vornyx.chatroom.repositories.MessageRepository;
+import net.vornyx.chatroom.repositories.NoteRepository;
 import net.vornyx.chatroom.repositories.ReactionRepository;
 import net.vornyx.chatroom.repositories.RoomRepository;
 import net.vornyx.chatroom.repositories.UserRepository;
@@ -40,6 +44,9 @@ public class ChatWebSocketController {
 
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
+
+    @Autowired
+    private NoteRepository noteRepository;
 
 
     // @SendTo("/topic/{roomId}/messages")
@@ -76,8 +83,20 @@ public class ChatWebSocketController {
 
     @MessageMapping("/rooms/{roomId}/typing")
     public void typing(@AuthenticationPrincipal User user, @Payload TypingDto typingDto, @DestinationVariable Integer roomId) {
+        roomRepository.findById(roomId).orElseThrow(() -> new RuntimeException("Room not found"));
         messagingTemplate.convertAndSend("/topic/" + roomId + "/typing", typingDto);
     }
+
+    @MessageMapping("/rooms/{roomId}/note")
+    public void note(@AuthenticationPrincipal User sender, @Payload NoteDto noteDto, @DestinationVariable Integer roomId) {
+        roomRepository.findById(roomId).orElseThrow(() -> new RuntimeException("Room not found"));
+        User user = userRepository.findByUsername(noteDto.getUsername()).orElseThrow(() -> new RuntimeException("User not found"));
+        NoteId noteId = new NoteId(user.getId(), roomId);
+        Note note = new Note(noteId, noteDto.getContent());
+        noteRepository.save(note);
+        messagingTemplate.convertAndSend("/topic/" + roomId + "/typing", noteDto);
+    }
+
 
     
 
