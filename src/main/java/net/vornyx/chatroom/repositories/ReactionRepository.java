@@ -9,12 +9,19 @@ import net.vornyx.chatroom.entities.Reaction;
 
 public interface ReactionRepository extends JpaRepository<Reaction, Long> {
 
+
     // Get all Reactions in a room
-    List<Reaction> findByReactionId_MessageId(Long messageId);
+    Reaction findByReactionId_MessageId(Long messageId);
 
     // Get all Reactions from a specific user
-    List<Reaction> findByReactionId_UserId(Integer userId);
+    Reaction findByReactionId_UserId(Integer userId);
 
+    Reaction findByReactionId_UserIdAndReactionId_MessageId(Integer userId, Long messageId);
+    // Get all Reactions in a room
+    List<Reaction> findAllByReactionId_MessageId(Long messageId);
+
+    // Get all Reactions from a specific user
+    List<Reaction> findAllByReactionId_UserId(Integer userId);
     // Reactions after a specific Reaction ID
     List<Reaction> findByReactionId_MessageIdAndIdGreaterThan(Integer messageId, Long id);
 
@@ -22,5 +29,7 @@ public interface ReactionRepository extends JpaRepository<Reaction, Long> {
 
     List<Reaction> findByReactionId_MessageIdAndIdLessThanOrderByIdDesc(Integer messageId, Integer id, Pageable pageable);
 
-    void deleteAllByReactionId_MessageId(Integer messageId);
+    void deleteByReactionId_UserIdAndReactionId_MessageId(Integer userId, Long messageId);
+
+    void deleteAllByReactionId_MessageId(Long messageId);
 }

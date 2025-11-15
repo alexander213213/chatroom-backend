@@ -5,15 +5,18 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import net.vornyx.chatroom.util.Operation;
 
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class SendMessageDto {
+public class MessageDto {
+    private Long messageId;
     private Integer roomId;
     private String username;
     private String content;
+    private Operation type;
     private Long replyTo;
 }

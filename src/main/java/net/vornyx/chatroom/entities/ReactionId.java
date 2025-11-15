@@ -8,12 +8,12 @@ import jakarta.persistence.Embeddable;
 public class ReactionId implements Serializable {
 
     private Integer userId;
-    private Integer messageId;
+    private Long messageId;
 
     public ReactionId() {
     }
 
-    public ReactionId(Integer userId, Integer messageId) {
+    public ReactionId(Integer userId, Long messageId) {
         this.userId = userId;
         this.messageId = messageId;
     }
@@ -27,11 +27,11 @@ public class ReactionId implements Serializable {
         this.userId = userId;
     }
 
-    public Integer getMessageId() {
+    public Long getMessageId() {
         return messageId;
     }
 
-    public void setMessageId(Integer messageId) {
+    public void setMessageId(Long messageId) {
         this.messageId = messageId;
     }
 

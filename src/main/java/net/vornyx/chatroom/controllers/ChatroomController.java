@@ -139,7 +139,7 @@ class ChatroomController {
                         .orElseThrow(() -> new RuntimeException("User not found"));
 
                 // Fetch reactions for this message
-                List<Reaction> reactions = reactionRepository.findByReactionId_MessageId(message.getId());
+                List<Reaction> reactions = reactionRepository.findAllByReactionId_MessageId(message.getId());
 
                 List<ReactMessageDto> reactionDtos = reactions.stream()
                         .map(reaction -> {

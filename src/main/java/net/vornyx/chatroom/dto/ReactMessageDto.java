@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import net.vornyx.chatroom.entities.Reaction;
+import net.vornyx.chatroom.util.Operation;
 
 @Getter
 @Setter
@@ -13,9 +14,10 @@ import net.vornyx.chatroom.entities.Reaction;
 @NoArgsConstructor
 @Builder
 public class ReactMessageDto {
-    private Integer messageId;
+    private Long messageId;
     private String username;
     private String emoji;
+    private Operation type;
 
     public ReactMessageDto(Reaction reaction, String username, String emoji) {
         this.messageId = reaction.getReactionId().getMessageId();

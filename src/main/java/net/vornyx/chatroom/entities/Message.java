@@ -35,7 +35,6 @@ public class Message {
 
     @ManyToOne
     @JoinColumn(name = "reply_to", nullable=true) // FK -> messages.id
-    @OnDelete(action = OnDeleteAction.CASCADE)
     private Message replyTo;
     
 

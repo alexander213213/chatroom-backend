@@ -10,10 +10,10 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 
-import net.vornyx.chatroom.dto.MessageResponseDto;
+import jakarta.transaction.Transactional;
+import net.vornyx.chatroom.dto.MessageDto;
 import net.vornyx.chatroom.dto.NoteDto;
 import net.vornyx.chatroom.dto.ReactMessageDto;
-import net.vornyx.chatroom.dto.SendMessageDto;
 import net.vornyx.chatroom.dto.TypingDto;
 import net.vornyx.chatroom.entities.Message;
 import net.vornyx.chatroom.entities.MessageId;
@@ -27,7 +27,8 @@ import net.vornyx.chatroom.repositories.NoteRepository;
 import net.vornyx.chatroom.repositories.ReactionRepository;
 import net.vornyx.chatroom.repositories.RoomRepository;
 import net.vornyx.chatroom.repositories.UserRepository;
-
+import net.vornyx.chatroom.util.Operation;
+@Transactional
 @Controller
 public class ChatWebSocketController {
     @Autowired
@@ -50,35 +51,55 @@ public class ChatWebSocketController {
 
 
     // @SendTo("/topic/{roomId}/messages")
-    @MessageMapping("/rooms/{roomId}/sendMessage")
-    public void sendMessage(@AuthenticationPrincipal User sender, @Payload SendMessageDto messageDto, @DestinationVariable Integer roomId) {
+    @MessageMapping("/rooms/{roomId}/message")
+    public void sendMessage(@AuthenticationPrincipal User sender, @Payload MessageDto messageDto, @DestinationVariable Integer roomId) {
         roomRepository.findById(roomId).orElseThrow(() -> new RuntimeException("Room not found"));
-        Message message = new Message();
-        message.setContent(messageDto.getContent());
-        System.out.println(messageDto.toString());
-        if (messageDto.getReplyTo() != null) {
-            message.setReplyTo(messageRepository.findById(messageDto.getReplyTo()).get());
-            System.out.println(message.getReplyTo().getContent());
+        if (messageDto.getType() == Operation.POST || messageDto.getType() == Operation.UPDATE) {
+            Message message = new Message();
+            message.setContent(messageDto.getContent());
+            if (messageDto.getReplyTo() != null) {
+                message.setReplyTo(messageRepository.findById(messageDto.getReplyTo()).get());
+                System.out.println(message.getReplyTo().getContent());
+            }
+            User user = userRepository.findByUsername(messageDto.getUsername()).orElseThrow(() -> new RuntimeException("User not found"));
+            MessageId messageId = new MessageId(user.getId(), roomId);
+            message.setMessageId(messageId);
+            message.setCreated_at(LocalDateTime.now());
+            if (messageDto.getType() == Operation.UPDATE) {
+                message.setId(messageDto.getMessageId());
+            }
+            messageRepository.save(message);
+            messagingTemplate.convertAndSend("/topic/" + roomId + "/messages", messageDto);
+        } else if (messageDto.getType() == Operation.DELETE) {
+            messageRepository.deleteById(messageDto.getMessageId());
         }
-        User user = userRepository.findByUsername(messageDto.getUsername()).orElseThrow(() -> new RuntimeException("User not found"));
-        MessageId messageId = new MessageId(user.getId(), roomId);
-        message.setMessageId(messageId);
-        message.setCreated_at(LocalDateTime.now());
-        Message savedMessage = messageRepository.save(message);
-        MessageResponseDto response = new MessageResponseDto(savedMessage, user.getUsername());
-        messagingTemplate.convertAndSend("/topic/" + roomId + "/messages", response);
     }
 
     @MessageMapping("/rooms/{roomId}/react")
     public void react(@AuthenticationPrincipal User sender, @Payload ReactMessageDto reactionDto, @DestinationVariable Integer roomId) {
         roomRepository.findById(roomId).orElseThrow(() -> new RuntimeException("Room not found"));
-        Reaction reaction = new Reaction();
-        reaction.setEmoji(reactionDto.getEmoji());
-        User user = userRepository.findByUsername(reactionDto.getUsername()).orElseThrow(() -> new RuntimeException("User not found"));
-        ReactionId reactionId = new ReactionId(user.getId(), reactionDto.getMessageId());
-        reaction.setReactionId(reactionId);
-        reactionRepository.save(reaction);
-        messagingTemplate.convertAndSend("/topic/" + roomId + "/reactions", reactionDto);
+        if (reactionDto.getType() == Operation.POST) {
+            if (reactionRepository.findByReactionId_UserIdAndReactionId_MessageId(roomId, reactionDto.getMessageId()) != null) {
+                return;
+            }
+            Reaction reaction = new Reaction();
+            reaction.setEmoji(reactionDto.getEmoji());
+            User user = userRepository.findByUsername(reactionDto.getUsername()).orElseThrow(() -> new RuntimeException("User not found"));
+            ReactionId reactionId = new ReactionId(user.getId(), reactionDto.getMessageId());
+            reaction.setReactionId(reactionId);
+            reactionRepository.save(reaction);
+            messagingTemplate.convertAndSend("/topic/" + roomId + "/reactions", reactionDto);
+
+        } else if (reactionDto.getType() == Operation.UPDATE) {
+            Reaction reaction = reactionRepository.findByReactionId_UserIdAndReactionId_MessageId(roomId, reactionDto.getMessageId());
+            reaction.setEmoji(reactionDto.getEmoji());
+            reactionRepository.save(reaction);
+            messagingTemplate.convertAndSend("/topic/" + roomId + "/reactions", reactionDto);
+        } else if (reactionDto.getType() == Operation.DELETE) {
+            User user = userRepository.findByUsername(reactionDto.getUsername()).get();
+            reactionRepository.deleteByReactionId_UserIdAndReactionId_MessageId(user.getId(), reactionDto.getMessageId());
+            messagingTemplate.convertAndSend("/topic/" + roomId + "/reactions", reactionDto);
+        }
     }
 
     @MessageMapping("/rooms/{roomId}/typing")
@@ -96,10 +117,5 @@ public class ChatWebSocketController {
         noteRepository.save(note);
         messagingTemplate.convertAndSend("/topic/" + roomId + "/typing", noteDto);
     }
-
-
-    
-
-
 
 }
