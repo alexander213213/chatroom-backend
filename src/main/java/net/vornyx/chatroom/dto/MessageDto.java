@@ -13,7 +13,7 @@ import net.vornyx.chatroom.util.Operation;
 @NoArgsConstructor
 @Builder
 public class MessageDto {
-    private Long messageId;
+    private Long id;
     private Integer roomId;
     private String username;
     private String content;

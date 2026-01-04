@@ -87,7 +87,7 @@ class ChatroomController {
     }
 
     @PostMapping("/{roomId}/invite")
-    public ResponseEntity invite(@AuthenticationPrincipal User user, @PathVariable Integer roomId, @RequestBody List<String> usernames) {
+    public ResponseEntity<?> invite(@AuthenticationPrincipal User user, @PathVariable Integer roomId, @RequestBody List<String> usernames) {
         Room room = roomRepository.findById(roomId).orElseThrow(() -> new RuntimeException("Room not found"));
         List<User> userList = userRepository.findAllByUsernameIn(usernames);
         Set<User> existingMembers = roomMemberRepository.findByRoom(room)
@@ -157,7 +157,7 @@ class ChatroomController {
         return ResponseEntity.ok(responseDtos);
     }
 
-    @GetMapping("/{roomId}/Notes")
+    @GetMapping("/{roomId}/notes")
     public ResponseEntity<List<NoteDto>> getNotes(
             @AuthenticationPrincipal User user,
             @PathVariable Integer roomId,

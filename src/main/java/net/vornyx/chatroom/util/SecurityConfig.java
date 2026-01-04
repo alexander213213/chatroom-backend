@@ -32,13 +32,24 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
-                .csrf(csrf -> csrf.disable())
-                .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/auth/**", "/", "/index.html", "/favicon.ico").permitAll() // allow login & register
-                .anyRequest().authenticated() // protect the rest
-                )
-                .userDetailsService(userDetailsService)
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+            .cors(cors -> cors
+                .configurationSource(request -> {
+                    var config = new org.springframework.web.cors.CorsConfiguration();
+                    config.setAllowedOrigins(java.util.List.of("*"));
+                    config.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+                    config.setAllowedHeaders(java.util.List.of("*"));
+                    config.setAllowCredentials(false); // must be false if origin = "*"
+                    return config;
+                })
+            )
+            .csrf(csrf -> csrf.disable())
+            .authorizeHttpRequests(auth -> auth
+            .requestMatchers("/auth/**", "/ws/**").permitAll()
+            .requestMatchers("/rooms/**").authenticated() // allow login & register
+            .anyRequest().permitAll() // protect the rest
+            )
+            .userDetailsService(userDetailsService)
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

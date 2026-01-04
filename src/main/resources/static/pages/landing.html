@@ -1,0 +1,127 @@
+<div include="components/navbar.html"></div>
+
+<div class="landing">
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="content-header">
+            <h1 class="page-title">Room Management</h1>
+        </div>
+
+        <div class="workspace">
+            <!-- Create Room Panel -->
+            <div class="window create-room-panel">
+                <div class="window-titlebar">
+                    <span class="window-title">Create a Room ✨</span>
+                </div>
+                <div class="window-content">
+                    <label class="input-label">▶ Enter Room Name</label>
+                    <input type="text" id="roomNameInput" class="pixel-input" placeholder="Meeteams 3" maxlength="50">
+                    
+                    <div class="advanced-settings">
+                        <div class="settings-toggle" id="advancedToggle">
+                            <span>Advanced Settings</span>
+                            <span class="toggle-icon">▲</span>
+                        </div>
+                        <div class="settings-content" id="settingsContent">
+                            <div class="setting-item">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="setMaxMembersCheck">
+                                    <span>Set Maximum Members</span>
+                                </label>
+                                <div class="number-control" id="maxMembersControl" style="display: none;">
+                                    <button class="num-btn" id="decreaseMax">◀</button>
+                                    <input type="number" id="maxMembersInput" value="10" min="2" max="100" class="num-input">
+                                    <button class="num-btn" id="increaseMax">▶</button>
+                                </div>
+                            </div>
+                            <div class="setting-item">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="adminOnlyCheck">
+                                    <span>Admin Only</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="button-group">
+                        <button class="pixel-btn primary" id="createRoomBtn">Create Room</button>
+                        <button class="pixel-btn secondary" id="copyRoomIdBtn">Copy Room ID</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Your Rooms Panel -->
+            <div class="window your-rooms-panel">
+                <div class="window-titlebar">
+                    <span class="window-title">Your Rooms</span>
+                </div>
+                <div class="window-content rooms-scroll">
+                    <div id="yourRoomsList" class="rooms-list">
+                        <!-- Rooms will be populated here -->
+                        <div class="empty-state">No rooms yet. Create one to get started!</div>
+                    </div>
+                    <button class="pixel-btn add-room-btn" id="createNewRoomBtn">
+                        <span style="font-size: 14px;">➕</span> Create a new Room
+                    </button>
+                </div>
+            </div>
+
+            <!-- Team-ups Panel -->
+            <div class="window team-ups-panel">
+                <div class="window-titlebar">
+                    <span class="window-title">Team-ups</span>
+                </div>
+                <div class="window-content">
+                    <label class="input-label">Search by Room ID</label>
+                    <div class="search-group">
+                        <input type="text" id="roomIdSearch" class="pixel-input" placeholder="Enter room ID...">
+                        <button class="pixel-btn primary" id="searchRoomBtn">Search</button>
+                    </div>
+                    
+                    <div id="searchResults" class="search-results" style="display: none;">
+                        <!-- Search results will appear here -->
+                    </div>
+
+                    <div class="team-list" id="joinedTeamsList">
+                        <!-- Joined teams will be listed here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Team Members Panel -->
+            <div class="window team-members-panel">
+                <div class="window-titlebar">
+                    <span class="window-title">Team Members</span>
+                </div>
+                <div class="window-content members-scroll">
+                    <div class="search-bar">
+                        <input type="text" id="memberSearchInput" class="pixel-input small" placeholder="🔍 Username">
+                    </div>
+                    <div id="teamMembersList" class="member-list">
+                        <!-- Members will be populated here -->
+                        <div class="empty-state small">Select a room to view members</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Invite Section (Bottom) -->
+        <div class="invite-section">
+            <div class="invite-controls">
+                <div class="control-group">
+                    <label class="input-label small">Select a Room</label>
+                    <select id="roomSelect" class="pixel-select">
+                        <option value="">Meeteams 1</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label class="input-label small">Invite Users</label>
+                    <input type="text" id="inviteUsernameInput" class="pixel-input" placeholder="Username">
+                </div>
+                <button class="pixel-btn success" id="sendInviteBtn">Send Invite</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div include="components/footer.html"></div>

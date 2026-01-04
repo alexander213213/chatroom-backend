@@ -66,12 +66,14 @@ public class ChatWebSocketController {
             message.setMessageId(messageId);
             message.setCreated_at(LocalDateTime.now());
             if (messageDto.getType() == Operation.UPDATE) {
-                message.setId(messageDto.getMessageId());
+                message.setId(messageDto.getId());
             }
-            messageRepository.save(message);
+            Message savedMessage = messageRepository.save(message);
+            messageDto.setId(savedMessage.getId());
             messagingTemplate.convertAndSend("/topic/" + roomId + "/messages", messageDto);
         } else if (messageDto.getType() == Operation.DELETE) {
-            messageRepository.deleteById(messageDto.getMessageId());
+            messageRepository.deleteById(messageDto.getId());
+            messagingTemplate.convertAndSend("/topic/" + roomId + "/messages", messageDto);
         }
     }
 
@@ -79,19 +81,20 @@ public class ChatWebSocketController {
     public void react(@AuthenticationPrincipal User sender, @Payload ReactMessageDto reactionDto, @DestinationVariable Integer roomId) {
         roomRepository.findById(roomId).orElseThrow(() -> new RuntimeException("Room not found"));
         if (reactionDto.getType() == Operation.POST) {
-            if (reactionRepository.findByReactionId_UserIdAndReactionId_MessageId(roomId, reactionDto.getMessageId()) != null) {
+            User user = userRepository.findByUsername(reactionDto.getUsername()).orElseThrow(() -> new RuntimeException("User not found"));
+            if (reactionRepository.findByReactionId_UserIdAndReactionId_MessageId(user.getId(), reactionDto.getMessageId()) != null) {
                 return;
             }
             Reaction reaction = new Reaction();
             reaction.setEmoji(reactionDto.getEmoji());
-            User user = userRepository.findByUsername(reactionDto.getUsername()).orElseThrow(() -> new RuntimeException("User not found"));
             ReactionId reactionId = new ReactionId(user.getId(), reactionDto.getMessageId());
             reaction.setReactionId(reactionId);
             reactionRepository.save(reaction);
             messagingTemplate.convertAndSend("/topic/" + roomId + "/reactions", reactionDto);
 
         } else if (reactionDto.getType() == Operation.UPDATE) {
-            Reaction reaction = reactionRepository.findByReactionId_UserIdAndReactionId_MessageId(roomId, reactionDto.getMessageId());
+            User user = userRepository.findByUsername(reactionDto.getUsername()).get();
+            Reaction reaction = reactionRepository.findByReactionId_UserIdAndReactionId_MessageId(user.getId(), reactionDto.getMessageId());
             reaction.setEmoji(reactionDto.getEmoji());
             reactionRepository.save(reaction);
             messagingTemplate.convertAndSend("/topic/" + roomId + "/reactions", reactionDto);
@@ -115,7 +118,7 @@ public class ChatWebSocketController {
         NoteId noteId = new NoteId(user.getId(), roomId);
         Note note = new Note(noteId, noteDto.getContent());
         noteRepository.save(note);
-        messagingTemplate.convertAndSend("/topic/" + roomId + "/typing", noteDto);
+        messagingTemplate.convertAndSend("/topic/" + roomId + "/notes", noteDto);
     }
 
 }

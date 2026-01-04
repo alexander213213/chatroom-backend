@@ -2,9 +2,6 @@ package net.vornyx.chatroom.entities;
 
 import java.time.LocalDateTime;
 
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
