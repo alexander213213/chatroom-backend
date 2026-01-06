@@ -132,9 +132,21 @@ p{
     background-image: url('../../resources/images/submit_submit.png'); 
     transform: translateY(1px);
 }
-.right_side{
-    width:62%;
-    background-color: white;
+.right_side {
+    width: 62%;
+    background-color: #654E66;
+    height: 100vh;
+    overflow: hidden; 
+    position: relative; 
+}
+.background-video {
+    position: absolute;
+    top: -100px;
+    left: 0px;
+    width: 100%;
+    height: 130%;
+    object-fit: cover;
+    object-position: 70% center;
 }
 
 
@@ -252,4 +264,187 @@ p{
 .left_side{
     width:62%;
     background-color: white;
+}
+
+
+/* Character Select - Full Video Background */
+#characterSelect {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.character-select-video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 1;
+}
+
+.character_select_container {
+    position: relative;
+    z-index: 2;
+    height: 100vh;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    padding: 40px 20px 60px 20px;
+    background-color: transparent;
+}
+
+.character-header {
+    margin-top: 170px;
+    margin-bottom: 0px;
+    text-align: center;
+    margin-left: 0;
+    text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.8);
+    color: #FFE6C6;
+}
+
+.character_carousel_wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 800px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 40px;
+    margin-bottom: 20px;
+    height: 500px;
+}
+
+.character_carousel {
+    width: 450px;
+    height: 500px;
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.carousel-track {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+.character-slide {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%) scale(0.8);
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    background-color: transparent;
+    opacity: 0;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    pointer-events: none;
+}
+
+.character-slide.active {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+    pointer-events: auto;
+}
+
+.character-slide img {
+    width: 350px;
+    height: 350px;
+    object-fit: contain;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+    margin-bottom: -30px;
+    filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.5));
+}
+
+.character-name {
+    color: #28282E;
+    font-size: 2em;
+    font-family: Pixellari;
+    margin: 0;
+    margin-bottom: 0px;
+    text-align: center;
+    background-color: rgba(255, 230, 198, 0.95);
+    padding: 12px 30px;
+    border-radius: 15px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(5px);
+}
+
+.carousel-nav {
+    border: none;
+    outline: none;
+    background-color: rgba(233, 245, 157, 0.95);
+    cursor: pointer;
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    font-size: 3em;
+    color: #28282E;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s ease;
+    font-family: Arial, sans-serif;
+    line-height: 1;
+    backdrop-filter: blur(5px);
+    flex-shrink: 0;
+    align-self: center;
+}
+
+.carousel-nav:hover {
+    background-color: rgba(125, 211, 192, 0.95);
+    transform: scale(1.15);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.carousel-nav:active {
+    transform: scale(1.05);
+}
+
+.carousel-nav.prev {
+    padding-right: 5px;
+}
+
+.carousel-nav.next {
+    padding-left: 5px;
+}
+
+.select_character_btn {
+    border: none;
+    outline: none;
+    background-color: transparent;
+    cursor: pointer;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url('../../resources/images/login_default.png'); 
+    background-repeat: no-repeat;
+    background-size: 100% auto;
+    display: block;
+    width: 368px;
+    height: 41px;
+    padding-top: 1%;
+    padding-bottom: 1%;
+    font-family: Pixellari;
+    font-size: medium;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4));
+    margin-bottom: 20px;
+}
+
+.select_character_btn:active {
+    background-image: url('../../resources/images/login_submit.png'); 
+    transform: translateY(1px);
 }

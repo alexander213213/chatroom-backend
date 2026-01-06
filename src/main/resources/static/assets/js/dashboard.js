@@ -59,6 +59,7 @@ let currentTeamIndex = 0;
 let currentFileIndex = 0;
 let expandedConnection = null;
 let rooms = [];
+let notifications = []; // Real notifications from WebSocket
 
 // Mock data for features not yet in API
 const mockFiles = [
@@ -70,13 +71,6 @@ const mockFiles = [
 ];
 
 let connections = [];
-
-const mockNotifications = [
-    { id: 1, type: 'message', text: 'New message in Mga Paa', time: '5m ago' },
-    { id: 2, type: 'invite', text: 'Invitation to join Design Team', time: '1h ago' },
-    { id: 3, type: 'message', text: 'Carlos mentioned you in Dev Squad', time: '2h ago' },
-    { id: 4, type: 'invite', text: 'Invitation to join Marketing', time: '3h ago' }
-];
 
 // ============================================
 // UTILITY FUNCTIONS
@@ -133,6 +127,9 @@ function initDashboard() {
                      localStorage.getItem('rememberedUser') || 
                      localStorage.getItem('username') || 
                      'User';
+    
+    // Connect to WebSocket for real-time notifications
+    connectWebSocketForNotifications();
     
     // Load data and setup
     loadUserData();
@@ -356,7 +353,7 @@ function renderNotifications() {
     const notifList = document.getElementById('notificationList');
     if (!notifList) return;
     
-    if (mockNotifications.length === 0) {
+    if (notifications.length === 0) {
         notifList.innerHTML = `
             <div style="text-align: center; padding: 40px 20px; color: #f5f3e5; opacity: 0.7;">
                 No new notifications
@@ -365,7 +362,7 @@ function renderNotifications() {
         return;
     }
     
-    notifList.innerHTML = mockNotifications.map(notif => `
+    notifList.innerHTML = notifications.map(notif => `
         <div class="notification-item" data-id="${notif.id}" style="
             background: rgba(245, 243, 229, 0.1);
             border: 2px solid #f5f3e5;
@@ -383,7 +380,7 @@ function renderNotifications() {
                     ${notif.type === 'invite' ? '📨' : '💬'} ${notif.text}
                 </div>
                 <div style="color: #f5f3e5; opacity: 0.7; font-size: 12px;">
-                    ${notif.time}
+                    ${notif.time || formatNotificationTime(notif.timestamp)}
                 </div>
             </div>
             <button class="delete-notif" data-id="${notif.id}" style="
@@ -412,6 +409,19 @@ function renderNotifications() {
     });
 }
 
+function formatNotificationTime(timestamp) {
+    if (!timestamp) return 'Just now';
+    
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now - date;
+    
+    if (diff < 60000) return 'Just now';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+    return `${Math.floor(diff / 86400000)}d ago`;
+}
+
 function toggleNotificationModal() {
     const modal = document.getElementById('notificationModal');
     if (!modal) {
@@ -423,11 +433,166 @@ function toggleNotificationModal() {
 }
 
 function deleteNotification(notifId) {
-    const index = mockNotifications.findIndex(n => n.id === notifId);
+    const index = notifications.findIndex(n => n.id === notifId);
     if (index !== -1) {
-        mockNotifications.splice(index, 1);
+        notifications.splice(index, 1);
+        renderNotifications();
+        updateNotificationBadge();
+    }
+}
+
+// ============================================
+// WEBSOCKET FOR NOTIFICATIONS
+// ============================================
+function connectWebSocketForNotifications() {
+    // Use global stompClient if available, otherwise create new connection
+    if (typeof window.stompClient !== 'undefined' && window.stompClient && window.stompClient.connected) {
+        console.log('Using existing WebSocket connection');
+        subscribeToNotifications();
+        return;
+    }
+    
+    // Check if SockJS and Stomp are available
+    if (typeof SockJS === 'undefined' || typeof Stomp === 'undefined') {
+        console.warn('WebSocket libraries not loaded, notifications will not work in real-time');
+        return;
+    }
+    
+    try {
+        const token = localStorage.getItem('token');
+        const socket = new SockJS(CONFIG.WS_BASE);
+        const stompClient = Stomp.over(socket);
+        
+        stompClient.connect(
+            { Authorization: `Bearer ${token}` },
+            (frame) => {
+                console.log('✓ WebSocket connected for notifications');
+                subscribeToNotifications();
+            },
+            (error) => {
+                console.error('WebSocket connection error:', error);
+                // Retry after 5 seconds
+                setTimeout(connectWebSocketForNotifications, 5000);
+            }
+        );
+        
+        // Save to global scope if needed
+        if (!window.stompClient) {
+            window.stompClient = stompClient;
+        }
+    } catch (error) {
+        console.error('Failed to connect WebSocket:', error);
+    }
+}
+
+function subscribeToNotifications() {
+    const stompClient = window.stompClient;
+    
+    if (!stompClient || !stompClient.connected) {
+        console.error('Cannot subscribe to notifications: WebSocket not connected');
+        return;
+    }
+    
+    // Subscribe to user-specific notifications
+    stompClient.subscribe(`/user/${currentUsername}/notifications`, (message) => {
+        const notification = JSON.parse(message.body);
+        handleIncomingNotification(notification);
+    });
+    
+    console.log(`✓ Subscribed to notifications for ${currentUsername}`);
+}
+
+function handleIncomingNotification(notification) {
+    console.log('📨 New notification received:', notification);
+    
+    // Add to notifications array (newest first)
+    notifications.unshift(notification);
+    
+    // Keep only last 50 notifications
+    if (notifications.length > 50) {
+        notifications = notifications.slice(0, 50);
+    }
+    
+    // Update UI if modal is open
+    if (document.getElementById('notificationModal')?.style.display === 'block') {
         renderNotifications();
     }
+    
+    // Update notification badge
+    updateNotificationBadge();
+    
+    // Optional: Show toast notification
+    showToastNotification(notification);
+}
+
+function updateNotificationBadge() {
+    // Optional: Add a badge count to the notification bell
+    const notifBtn = document.querySelectorAll('.icon-btn')[0];
+    if (!notifBtn) return;
+    
+    const count = notifications.length;
+    
+    // Remove existing badge
+    const existingBadge = notifBtn.querySelector('.notification-badge');
+    if (existingBadge) {
+        existingBadge.remove();
+    }
+    
+    // Add new badge if there are notifications
+    if (count > 0) {
+        const badge = document.createElement('span');
+        badge.className = 'notification-badge';
+        badge.textContent = count > 9 ? '9+' : count;
+        badge.style.cssText = `
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: #ff4444;
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #f5d6bc;
+        `;
+        notifBtn.style.position = 'relative';
+        notifBtn.appendChild(badge);
+    }
+}
+
+function showToastNotification(notification) {
+    // Optional: Show a small toast/popup for new notifications
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        position: fixed;
+        top: 120px;
+        right: 30px;
+        background: #654E66;
+        border: 3px solid #f5f3e5;
+        border-radius: 3px;
+        padding: 15px 20px;
+        color: #f5f3e5;
+        font-size: 14px;
+        z-index: 9999;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        animation: slideInRight 0.3s ease;
+        max-width: 300px;
+    `;
+    toast.innerHTML = `
+        ${notification.type === 'invite' ? '📨' : '💬'} ${notification.text}
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Remove after 4 seconds
+    setTimeout(() => {
+        toast.style.animation = 'slideOutRight 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+    }, 4000);
 }
 
 // ============================================

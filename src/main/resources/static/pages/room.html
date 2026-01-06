@@ -1,763 +1,19 @@
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-    <meta charset="UTF-8" />
-    <title>Chat Room</title>
-    
-    <!-- WebSocket Libraries -->
-    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
-    
-    <style>
-        @font-face {
-        font-family: "Pixellari";
-        src: url("resources/font/Pixellari.ttf") format('truetype');
-        }
 
-        * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-    }
-
-    :root {
-        --bg-main: #e8b89a;
-        --bg-panel: #d4a084;
-        --bg-window: #f5d6bc;
-        --border-dark: #8b5a3c;
-        --border-light: #f9e8d8;
-        --text-main: #4a2c1a;
-        --text-muted: #9c6b4e;
-        --highlight: #c98b73;
-        --online: #7db87d;
-        --offline: #d87d7d;
-    }
-
-    body {
-        font-family: 'Press Start 2P', cursive;
-        background: var(--bg-main);
-        color: var(--text-main);
-        image-rendering: pixelated;
-        overflow: hidden;
-        height: 100vh;
-    }
-
-    /* Top Bar */
-    .top-bar {
-        height: 70px;
-        background: var(--bg-panel);
-        border-bottom: 3px solid var(--border-dark);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0 20px;
-        box-shadow: inset 0 -2px 0 var(--border-dark), inset 0 2px 0 var(--border-light);
-        gap: 12px;
-    }
-
-    .profile {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-    }
-
-    .avatar {
-        width: 48px;
-        height: 48px;
-        border: 2px solid var(--border-dark);
-        background: white;
-        image-rendering: pixelated;
-    }
-
-    .profile-info {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-    }
-
-    .username {
-        font-size: 10px;
-        color: var(--text-main);
-    }
-
-    .view-profile {
-        font-size: 7px;
-        color: var(--text-muted);
-        cursor: pointer;
-        text-decoration: underline;
-        transition: color 0.2s;
-    }
-
-    .view-profile:hover {
-        color: var(--text-main);
-    }
-
-    .home-btn {
-        background: var(--bg-panel);
-        border: 2px solid var(--border-dark);
-        padding: 8px 16px;
-        font-size: 8px;
-        cursor: pointer;
-        box-shadow: 
-            inset 1px 1px 0 var(--border-light),
-            2px 2px 0 rgba(0,0,0,0.1);
-        transition: all 0.1s;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        color: var(--text-main);
-        font-family: inherit;
-    }
-
-    #homeBtn {
-        margin-left: auto;
-    }
-
-    #deleteRoomBtn {
-    }
-
-    #logoutBtn {
-    }
-
-    .home-btn:hover {
-        background: var(--highlight);
-        transform: translate(-2px, -2px);
-        box-shadow: 
-            inset 1px 1px 0 var(--border-light),
-            4px 4px 0 rgba(0,0,0,0.15);
-    }
-
-    .home-btn:active {
-        transform: translate(0, 0);
-        box-shadow: 
-            inset -1px -1px 0 rgba(0,0,0,0.2),
-            1px 1px 0 rgba(0,0,0,0.1);
-    }
-
-    .home-icon {
-        font-size: 14px;
-    }
-
-    /* Main Workspace */
-        .workspace {
-        display: grid;
-        grid-template-columns: 1fr 350px;
-        grid-template-rows: 1fr 1fr;
-        gap: 15px;
-        height: calc(100vh - 70px);
-        padding: 15px;
-    }
-
-    /* Window Base Styles */
-    .window {
-        background: var(--bg-window);
-        border: 3px solid var(--border-dark);
-        box-shadow: 
-            inset 2px 2px 0 var(--border-light),
-            inset -2px -2px 0 rgba(0,0,0,0.2),
-            4px 4px 0 rgba(0,0,0,0.15);
-        display: flex;
-        flex-direction: column;
-        position: relative;
-    }
-
-    /* Window Title Bar */
-        .window-titlebar {
-        background: var(--bg-panel);
-        border-bottom: 3px solid var(--border-dark);
-        padding: 8px 12px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        box-shadow: inset 0 2px 0 var(--border-light);
-    }
-
-    .window-title {
-        font-size: 9px;
-        letter-spacing: 1px;
-    }
-
-    .window-controls {
-        display: flex;
-        gap: 8px;
-        font-size: 12px;
-    }
-
-    .window-btn {
-        width: 20px;
-        height: 20px;
-        border: 2px solid var(--border-dark);
-        background: var(--bg-window);
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: inset 1px 1px 0 var(--border-light);
-    }
-
-    .window-btn:active {
-        box-shadow: inset -1px -1px 0 var(--border-light);
-    }
-
-    .window.minimized {
-        height: 40px;
-        overflow: hidden;
-    }
-
-    .window.minimized .messages,
-    .window.minimized .chat-input,
-    .window.minimized .chat-sidebar,
-    .window.minimized .files-content,
-    .window.minimized .rooms-content {
-        display: none;
-    }
-
-    .window.minimized .window-titlebar {
-        cursor: pointer;
-    }
-
-    /* Chat Window */
-    .chat-window {
-        grid-column: 1;
-        grid-row: 1 / 3;
-        display: none;
-        grid-template-columns: 1fr 280px;
-        grid-template-rows: auto 1fr auto;
-    }
-
-    .chat-window.active {
-        display: grid;
-    }
-
-    .chat-window.minimized {
-        grid-template-columns: 1fr;
-    }
-
-    .chat-main {
-        grid-column: 1;
-        grid-row: 1 / 4;
-        display: flex;
-        flex-direction: column;
-        border-right: 3px solid var(--border-dark);
-    }
-
-    .chat-window.minimized .chat-main {
-        border-right: none;
-    }
-
-    .chat-titlebar {
-        background: var(--bg-panel);
-        border-bottom: 3px solid var(--border-dark);
-        padding: 8px 12px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        box-shadow: inset 0 2px 0 var(--border-light);
-    }
-
-    .chat-sidebar {
-        grid-column: 2;
-        grid-row: 1 / 4;
-        display: flex;
-        flex-direction: column;
-        overflow-y: auto;
-    }
-
-    .messages {
-        flex: 1;
-        overflow-y: auto;
-        padding: 15px;
-        background: var(--bg-window);
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-    }
-
-    .messages::-webkit-scrollbar {
-        width: 16px;
-    }
-
-    .messages::-webkit-scrollbar-track {
-        background: var(--bg-panel);
-        border: 2px solid var(--border-dark);
-    }
-
-    .messages::-webkit-scrollbar-thumb {
-        background: var(--highlight);
-        border: 2px solid var(--border-dark);
-        box-shadow: inset 1px 1px 0 var(--border-light);
-    }
-
-    .message {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        max-width: 70%;
-    }
-
-    .message.own-message {
-        align-self: flex-end;
-    }
-
-    .message-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 7px;
-        gap: 10px;
-    }
-
-    .message-username {
-        color: var(--text-muted);
-        font-weight: bold;
-    }
-
-    .message-timestamp {
-        color: var(--text-muted);
-        font-size: 6px;
-    }
-
-    .message-reply-preview {
-        font-size: 7px;
-        color: var(--text-muted);
-        padding: 4px 6px;
-        background: var(--bg-panel);
-        border-left: 2px solid var(--highlight);
-        margin: 0 4px;
-    }
-
-    .message-content {
-        background: white;
-        border: 2px solid var(--border-dark);
-        padding: 10px 12px;
-        font-size: 8px;
-        line-height: 1.6;
-        box-shadow: 
-            inset 1px 1px 0 var(--border-light),
-            2px 2px 0 rgba(0,0,0,0.1);
-        word-wrap: break-word;
-    }
-
-    .message.own-message .message-content {
-        background: var(--bg-panel);
-    }
-
-    .message-reactions {
-        display: flex;
-        gap: 4px;
-        flex-wrap: wrap;
-        padding: 0 4px;
-    }
-
-    .message-actions {
-        display: none;
-        gap: 6px;
-        padding: 0 4px;
-    }
-
-    .message:hover .message-actions {
-        display: flex;
-    }
-
-    .icon-btn {
-        background: transparent;
-        border: none;
-        cursor: pointer;
-        padding: 4px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--text-muted);
-        transition: color 0.2s;
-    }
-
-    .icon-btn:hover {
-        color: var(--text-main);
-    }
-
-    .sender {
-        font-size: 7px;
-        color: var(--text-muted);
-        padding: 0 4px;
-    }
-
-    .bubble {
-        background: white;
-        border: 2px solid var(--border-dark);
-        padding: 10px 12px;
-        font-size: 8px;
-        line-height: 1.6;
-        box-shadow: 
-            inset 1px 1px 0 var(--border-light),
-            2px 2px 0 rgba(0,0,0,0.1);
-        word-wrap: break-word;
-    }
-
-    .message.own-message .bubble {
-        background: var(--bg-panel);
-    }
-
-    .reactions-display {
-        display: flex;
-        gap: 4px;
-        flex-wrap: wrap;
-    }
-
-    .reaction {
-        background: var(--bg-panel);
-        border: 2px solid var(--border-dark);
-        padding: 3px 6px;
-        font-size: 10px;
-        cursor: pointer;
-        box-shadow: inset 1px 1px 0 var(--border-light);
-    }
-
-    .reaction.user-reaction {
-        background: var(--highlight);
-        border-color: var(--text-main);
-    }
-
-    .reaction-count {
-        margin-left: 4px;
-        font-size: 9px;
-    }
-
-    .reactions {
-        display: none;
-        gap: 6px;
-        margin-top: 4px;
-    }
-
-    .message:hover .reactions {
-        display: flex;
-    }
-
-    .reaction-btn, .reply-btn {
-        font-size: 12px;
-        cursor: pointer;
-        opacity: 0.6;
-        transition: opacity 0.2s;
-    }
-
-    .reaction-btn:hover, .reply-btn:hover {
-        opacity: 1;
-    }
-
-    .reply-preview {
-        background: var(--bg-panel);
-        border-left: 3px solid var(--highlight);
-        padding: 6px 8px;
-        font-size: 7px;
-        margin-bottom: 4px;
-        opacity: 0.8;
-    }
-
-    /* Chat Input */
-    .chat-input {
-        display: flex;
-        border-top: 3px solid var(--border-dark);
-        background: var(--bg-panel);
-    }
-
-    .chat-input input[type="text"] {
-        flex: 1;
-        border: none;
-        padding: 12px;
-        font-family: 'Press Start 2P', cursive;
-        font-size: 8px;
-        background: white;
-        color: var(--text-main);
-        border-left: 2px solid var(--border-dark);
-        border-right: 2px solid var(--border-dark);
-    }
-
-    .chat-input button {
-        width: 50px;
-        border: none;
-        background: var(--bg-panel);
-        font-family: 'Press Start 2P', cursive;
-        font-size: 14px;
-        cursor: pointer;
-        color: var(--text-main);
-        transition: background 0.1s;
-    }
-
-    .chat-input button:hover {
-        background: var(--highlight);
-    }
-
-    .chat-input button:active {
-        background: var(--border-dark);
-    }
-
-    /* Emoji Picker */
-    #emojiPicker {
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    }
-
-    .emoji-item {
-        cursor: pointer;
-        font-size: 20px;
-        padding: 5px;
-        text-align: center;
-        transition: transform 0.1s;
-    }
-
-    .emoji-item:hover {
-        transform: scale(1.2);
-        background: var(--highlight);
-    }
-
-    /* Members Panel */
-    .members-panel {
-        padding: 15px;
-        background: var(--bg-window);
-    }
-
-    .members-content {
-        overflow-y: auto;
-    }
-
-    .panel-section {
-        margin-bottom: 20px;
-    }
-
-    .section-title {
-        font-size: 8px;
-        color: var(--text-muted);
-        margin-bottom: 10px;
-        padding-bottom: 6px;
-        border-bottom: 2px solid var(--border-dark);
-    }
-
-    .status-indicator {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 7px;
-        padding: 8px;
-        background: white;
-        border: 2px solid var(--border-dark);
-        box-shadow: inset 1px 1px 0 var(--border-light);
-    }
-
-    .status-dot {
-        width: 12px;
-        height: 12px;
-        border: 2px solid var(--border-dark);
-    }
-
-    .status-dot.offline {
-        background: var(--offline);
-    }
-
-    .status-dot.online {
-        background: var(--online);
-    }
-
-    .member-list {
-        list-style: none;
-    }
-
-    .member-item {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px;
-        margin-bottom: 6px;
-        background: white;
-        border: 2px solid var(--border-dark);
-        font-size: 7px;
-        box-shadow: inset 1px 1px 0 var(--border-light);
-    }
-
-    .member-status {
-        width: 10px;
-        height: 10px;
-        border: 2px solid var(--border-dark);
-    }
-
-    .member-status.online {
-        background: var(--online);
-    }
-
-    .member-status.offline {
-        background: var(--offline);
-    }
-
-    /* Files Panel */
-    .files-panel {
-        grid-column: 2;
-        grid-row: 1;
-        display: none;
-    }
-
-    .files-panel.active {
-        display: flex;
-    }
-
-    .files-content {
-        padding: 15px;
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 10px;
-        max-height: 300px;
-        overflow-y: auto;
-    }
-
-    .file-item {
-        aspect-ratio: 1;
-        background: white;
-        border: 2px solid var(--border-dark);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 28px;
-        cursor: pointer;
-        box-shadow: 
-            inset 1px 1px 0 var(--border-light),
-            2px 2px 0 rgba(0,0,0,0.1);
-        transition: transform 0.1s;
-    }
-
-    .file-item:hover {
-        transform: translate(-2px, -2px);
-        box-shadow: 
-            inset 1px 1px 0 var(--border-light),
-            4px 4px 0 rgba(0,0,0,0.15);
-    }
-
-    .file-item:active {
-        transform: translate(0, 0);
-        box-shadow: 
-            inset -1px -1px 0 rgba(0,0,0,0.2),
-            1px 1px 0 rgba(0,0,0,0.1);
-    }
-
-    /* Rooms Panel */
-    .rooms-panel {
-        grid-column: 2;
-        grid-row: 2;
-    }
-
-    .rooms-content {
-        padding: 15px;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        overflow-y: auto;
-    }
-
-    .room-item {
-        background: white;
-        border: 2px solid var(--border-dark);
-        padding: 10px 12px;
-        font-size: 8px;
-        cursor: pointer;
-        box-shadow: 
-            inset 1px 1px 0 var(--border-light),
-            2px 2px 0 rgba(0,0,0,0.1);
-        transition: all 0.1s;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .room-item:hover {
-        background: var(--bg-panel);
-        transform: translate(-2px, -2px);
-        box-shadow: 
-            inset 1px 1px 0 var(--border-light),
-            4px 4px 0 rgba(0,0,0,0.15);
-    }
-
-    .room-item:active {
-        transform: translate(0, 0);
-        box-shadow: 
-            inset -1px -1px 0 rgba(0,0,0,0.2),
-            1px 1px 0 rgba(0,0,0,0.1);
-    }
-
-    .room-item.active {
-        background: var(--highlight);
-        border-color: var(--text-main);
-    }
-
-    .room-icon {
-        font-size: 16px;
-    }
-
-    /* Placeholder boxes when chat is closed */
-    .placeholder-box {
-        background: var(--bg-window);
-        border: 3px dashed var(--border-dark);
-        display: none;
-        align-items: center;
-        justify-content: center;
-        font-size: 9px;
-        color: var(--text-muted);
-        text-align: center;
-        padding: 20px;
-        opacity: 0.6;
-    }
-
-    .placeholder-box.visible {
-        display: flex;
-    }
-
-    .chat-placeholder {
-        grid-column: 1;
-        grid-row: 1 / 3;
-    }
-
-    .files-placeholder {
-        grid-column: 2;
-        grid-row: 1;
-    }
-
-    #replyIndicator {
-        background: var(--highlight);
-        border-top: 2px solid var(--border-dark);
-        padding: 8px 12px;
-        font-size: 7px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    #cancelReply {
-        background: var(--bg-panel);
-        border: 2px solid var(--border-dark);
-        padding: 4px 8px;
-        cursor: pointer;
-        font-family: inherit;
-        font-size: 10px;
-    }
-    </style>
-    </head>
-    <body class="pixel-ui">
+<body class="pixel-ui">
 
     <!-- Top Bar -->
     <header class="top-bar">
-    <div class="profile">
-        <img src="resources/images/Variant5.png" alt="Avatar" class="avatar" />
-        <div class="profile-info">
-        <div class="username" id="currentUserDisplay">Guest</div>
-        <a href="#" class="view-profile" id="viewProfileBtn">View Profile</a>
-        </div>
+    <div class="profile-header">
+      <div class="avatar">👨‍💻</div>
+      <div class="profile-name">
+        <div class="username" id="currentUserDisplay">Loading...</div>
+        <div class="view-profile" id="viewProfileBtn">View Profile ▼</div>
+      </div>
     </div>
-    <button class="home-btn" id="homeBtn">
-        <span class="home-icon">🏠</span>
-        <span>Home</span>
-    </button>
-    <button class="home-btn" id="deleteRoomBtn" style="display: none;">
-        <span>🗑️</span>
-        <span>Delete</span>
-    </button>
-    <button class="home-btn" id="logoutBtn">
-        <span>🚪</span>
-        <span>Logout</span>
-    </button>
+    <div class="top-icons">
+      <button class="icon-btn" title="Notifications">🔔</button>
+      <button class="icon-btn" id="homeBtn" title="Home">🏠</button>
+    </div>
     </header>
 
     <!-- Main Workspace -->
@@ -786,23 +42,24 @@
             </div>
         </div>
 
-        <div class="chat-input">
-            <div id="replyPreview" style="display: none; background: var(--bg-panel); padding: 10px; margin-bottom: 5px; border-left: 3px solid var(--highlight); font-size: 8px;">
-            <div style="display: flex; justify-content: space-between;">
+        <div class="chat-input" id="messageInputContainer" style="display: none;">
+            <div id="replyPreview" class="reply-preview">
+            <div class="reply-preview-header">
                 <span id="replyText"></span>
-                <button id="cancelReply" style="background: none; border: none; cursor: pointer;">✕</button>
+                <button id="cancelReply" class="reply-preview-close">✕</button>
             </div>
             </div>
-            <div id="typingIndicator" style="display: none; color: var(--text-muted); font-size: 8px; padding: 5px;"></div>
-            <input type="file" id="fileInput" style="display: none;" />
+            <div id="typingIndicator" class="typing-indicator"></div>
+            <input type="file" id="fileInput" class="file-input-hidden" />
             <button id="fileBtn">📎</button>
             <input id="messageInput" type="text" placeholder="Type message..." />
+            <button id="notesBtn" class="chat-icon-btn" title="Notes">📝</button>
             <button id="sendBtn">➤</button>
         </div>
-        
+
         <!-- Emoji Picker -->
-        <div id="emojiPicker" style="display: none; position: fixed; background: var(--bg-window); border: 2px solid var(--border-dark); padding: 10px; border-radius: 4px; z-index: 1000;">
-            <div id="emojiGrid" style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px;"></div>
+        <div id="emojiPicker" class="emoji-picker">
+            <div id="emojiGrid" class="emoji-grid"></div>
         </div>
         </div>
 
@@ -821,7 +78,7 @@
             <div class="panel-section">
                 <div class="section-title">Team Members</div>
                 <ul class="member-list" id="membersList">
-                <li class="member-item" style="color: var(--text-muted); font-size: 7px;">
+                <li class="member-list-item">
                     Loading members...
                 </li>
                 </ul>
@@ -845,7 +102,7 @@
         </div>
         </div>
 
-        <div class="files-content">
+        <div class="files-content" id="filesContent" style="display: none;">
         <div class="file-item">📄</div>
         <div class="file-item">📄</div>
         <div class="file-item">📊</div>
@@ -885,135 +142,72 @@
     </aside>
     </main>
 
+    <!-- Notes Popup Modal -->
+    <div id="notesModal" class="modal-overlay notes-modal">
+        <div class="modal-content notes-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Room Notes</h3>
+                <button onclick="closeModal('notesModal')" class="modal-close-btn">✕</button>
+            </div>
+            <div class="notes-list">
+                <div id="notesList"></div>
+            </div>
+            <div class="notes-input-area">
+                <input type="text" id="noteInput" placeholder="Add a note..." class="notes-input">
+                <button id="addNoteBtn" class="add-note-btn">Add</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Create Room Modal -->
-    <div id="createRoomModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center;">
-        <div style="background: var(--bg-window); border: 3px solid var(--border-dark); padding: 20px; max-width: 400px; width: 90%;">
-            <h3 style="margin-bottom: 15px; font-size: 10px;">Create New Room</h3>
-            <input type="text" id="roomName" placeholder="Room name" style="width: 100%; padding: 8px; margin-bottom: 10px; font-family: 'Press Start 2P'; font-size: 8px; border: 2px solid var(--border-dark);">
-            <input type="text" id="newRoomDescription" placeholder="Description (optional)" style="width: 100%; padding: 8px; margin-bottom: 15px; font-family: 'Press Start 2P'; font-size: 8px; border: 2px solid var(--border-dark);">
-            <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                <button onclick="closeModal('createRoomModal')" style="background: var(--border-dark); color: white; border: 2px solid var(--border-dark); padding: 8px 15px; cursor: pointer; font-family: 'Press Start 2P'; font-size: 8px;">Cancel</button>
-                <button id="confirmCreateRoom" style="background: var(--highlight); border: 2px solid var(--border-dark); padding: 8px 15px; cursor: pointer; font-family: 'Press Start 2P'; font-size: 8px;">Create</button>
+    <div id="createRoomModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 class="modal-title">Create New Room</h3>
+            <div class="modal-input-group">
+                <input type="text" id="roomName" placeholder="Room name" class="modal-input">
+            </div>
+            <div class="modal-input-group last">
+                <input type="text" id="newRoomDescription" placeholder="Description (optional)" class="modal-input">
+            </div>
+            <div class="modal-button-group">
+                <button onclick="closeModal('createRoomModal')" class="modal-btn-cancel">Cancel</button>
+                <button id="confirmCreateRoom" class="modal-btn-confirm">Create</button>
             </div>
         </div>
     </div>
 
     <!-- Invite Members Modal -->
-    <div id="inviteMembersModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center;">
-        <div style="background: var(--bg-window); border: 3px solid var(--border-dark); padding: 20px; max-width: 400px; width: 90%;">
-            <h3 style="margin-bottom: 15px; font-size: 10px;">Invite Users to Room</h3>
-            <div id="membersList" style="margin-bottom: 15px; max-height: 150px; overflow-y: auto; background: var(--bg-panel); padding: 10px; border: 1px solid var(--border-dark);">
-                <div style="color: var(--text-muted); font-size: 7px;">Loading members...</div>
+    <div id="inviteMembersModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 class="modal-title">Invite Users to Room</h3>
+            <div class="modal-members-list" id="membersList">
+                <div class="modal-members-loading">Loading members...</div>
             </div>
-            <input type="text" id="inviteUsername" placeholder="Enter username to invite" style="width: 100%; padding: 8px; margin-bottom: 15px; font-family: 'Press Start 2P'; font-size: 8px; border: 2px solid var(--border-dark);">
-            <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                <button onclick="closeModal('inviteMembersModal')" style="background: var(--border-dark); color: white; border: 2px solid var(--border-dark); padding: 8px 15px; cursor: pointer; font-family: 'Press Start 2P'; font-size: 8px;">Cancel</button>
-                <button id="confirmInvite" style="background: var(--highlight); border: 2px solid var(--border-dark); padding: 8px 15px; cursor: pointer; font-family: 'Press Start 2P'; font-size: 8px;">Invite</button>
+            <div class="modal-input-group last">
+                <input type="text" id="inviteUsername" placeholder="Enter username to invite" class="modal-input">
+            </div>
+            <div class="modal-button-group">
+                <button onclick="closeModal('inviteMembersModal')" class="modal-btn-cancel">Cancel</button>
+                <button id="confirmInvite" class="modal-btn-confirm">Invite</button>
             </div>
         </div>
     </div>
 
     <!-- View Profile Modal -->
-    <div id="viewProfileModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center;">
-        <div style="background: var(--bg-window); border: 3px solid var(--border-dark); padding: 20px; max-width: 400px; width: 90%;">
-            <h3 style="margin-bottom: 15px; font-size: 10px;">User Profile</h3>
-            <div style="margin-bottom: 15px; text-align: center;">
-                <img id="profileAvatar" src="" alt="avatar" style="width: 64px; height: 64px; border-radius: 4px; margin-bottom: 10px;">
-                <div id="profileUsername" style="font-size: 10px; font-weight: bold; margin-bottom: 5px;"></div>
-                <div id="profileStatus" style="font-size: 8px; color: var(--text-muted);"></div>
+    <div id="viewProfileModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 class="modal-title">User Profile</h3>
+            <div class="modal-profile-section">
+                <img id="profileAvatar" src="" alt="avatar" class="modal-profile-avatar">
+                <div id="profileUsername" class="modal-profile-username"></div>
+                <div id="profileStatus" class="modal-profile-status"></div>
             </div>
-            <button onclick="closeModal('viewProfileModal')" style="width: 100%; background: var(--border-dark); color: white; border: 2px solid var(--border-dark); padding: 8px 15px; cursor: pointer; font-family: 'Press Start 2P'; font-size: 8px;">Close</button>
+            <button onclick="closeModal('viewProfileModal')" class="modal-btn-full">Close</button>
         </div>
     </div>
 
-    <script>
-        // Modal utilities
-        function openModal(modalId) {
-            const modal = document.getElementById(modalId);
-            if (modal) modal.style.display = 'flex';
-        }
+    </main>
 
-        function closeModal(modalId) {
-            const modal = document.getElementById(modalId);
-            if (modal) modal.style.display = 'none';
-        }
-
-        // Modal backdrop click handling - close on outside click
-        document.addEventListener('click', function(e) {
-            if (e.target.style.background && e.target.style.background.includes('rgba(0,0,0')) {
-                // Check if it's a modal (has the overlay styling)
-                const modals = document.querySelectorAll('[style*="position: fixed"][style*="background: rgba"]');
-                modals.forEach(modal => {
-                    if (e.target === modal && modal.style.display === 'flex') {
-                        closeModal(modal.id);
-                    }
-                });
-            }
-        });
-    </script>
-
-        // Display current username in header
-        document.addEventListener('DOMContentLoaded', function() {
-        const userDisplay = document.getElementById('currentUserDisplay');
-        if (userDisplay) {
-            userDisplay.textContent = localStorage.getItem('username') || sessionStorage.getItem('username') || 'Guest';
-        }
-        document.addEventListener('DOMContentLoaded', function() {
-            document.addEventListener('click', function(e) {
-                if (e.target.classList.contains('window-btn')) {
-                    const action = e.target.dataset.action;
-                    console.log('Window button clicked:', action);
-                    
-                    if (action === 'minimize-chat') {
-                        const chatSection = document.querySelector('.chat-window');
-                        if (chatSection) {
-                            const isHidden = chatSection.classList.contains('minimized');
-                            if (isHidden) {
-                                chatSection.classList.remove('minimized');
-                                chatSection.style.display = 'flex';
-                            } else {
-                                chatSection.classList.add('minimized');
-                                chatSection.style.display = 'none';
-                            }
-                        }
-                    } else if (action === 'close-chat') {
-                        const chatSection = document.querySelector('.chat-window');
-                        if (chatSection) chatSection.style.display = 'none';
-                    } else if (action === 'minimize-files') {
-                        const filesPanel = document.querySelector('.files-panel');
-                        if (filesPanel) {
-                            const isHidden = filesPanel.classList.contains('minimized');
-                            filesPanel.classList.toggle('minimized');
-                            filesPanel.style.display = isHidden ? 'block' : 'none';
-                            
-                            const filesPH = document.querySelector('.files-placeholder');
-                            if (filesPH) {
-                                filesPH.classList.toggle('minimized');
-                                filesPH.style.display = isHidden ? 'block' : 'none';
-                            }
-                        }
-                    } else if (action === 'minimize-rooms') {
-                        const roomsPanel = document.querySelector('.rooms-panel');
-                        if (roomsPanel) {
-                            const isHidden = roomsPanel.classList.contains('minimized');
-                            roomsPanel.classList.toggle('minimized');
-                            roomsPanel.style.display = isHidden ? 'block' : 'none';
-                        }
-                    }
-                }
-            });
-        });
-
-        // Wire up room context menu for delete/invite
-        document.addEventListener('contextmenu', function(e) {
-            const roomItem = e.target.closest('.room-item');
-            if (roomItem && currentRoom) {
-                e.preventDefault();
-                openModal('inviteMembersModal');
-            }
-        });
-    </script>
-    
     <script src="room.js"></script>
     </body>
     </html>

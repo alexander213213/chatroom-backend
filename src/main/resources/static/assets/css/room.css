@@ -1,5 +1,9 @@
+@font-face {
+    font-family: "Pixellari";
+    src: url("resources/font/Pixellari.ttf") format('truetype');
+}
+
 * {
-    font-family: Pixellari;
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -37,23 +41,27 @@ body {
     align-items: center;
     padding: 0 20px;
     box-shadow: inset 0 -2px 0 var(--border-dark), inset 0 2px 0 var(--border-light);
+    gap: 12px;
 }
 
-.profile {
+.profile-header {
     display: flex;
     align-items: center;
     gap: 15px;
 }
 
 .avatar {
+    font-size: 36px;
     width: 48px;
     height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     border: 2px solid var(--border-dark);
     background: white;
-    image-rendering: pixelated;
 }
 
-.profile-info {
+.profile-name {
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -65,15 +73,33 @@ body {
 }
 
 .view-profile {
-        font-size: 7px;
-        color: var(--text-muted);
-        cursor: pointer;
-        text-decoration: underline;
-        transition: color 0.2s;
+    font-size: 7px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color 0.2s;
 }
 
 .view-profile:hover {
     color: var(--text-main);
+}
+
+.top-icons {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.icon-btn {
+    background: transparent;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 8px;
+    transition: opacity 0.2s;
+}
+
+.icon-btn:hover {
+    opacity: 0.8;
 }
 
 .home-btn {
@@ -91,6 +117,16 @@ body {
     gap: 6px;
     color: var(--text-main);
     font-family: inherit;
+}
+
+#homeBtn {
+    margin-left: auto;
+}
+
+#deleteRoomBtn {
+}
+
+#logoutBtn {
 }
 
 .home-btn:hover {
@@ -194,9 +230,13 @@ body {
 .chat-window {
     grid-column: 1;
     grid-row: 1 / 3;
-    display: grid;
+    display: none;
     grid-template-columns: 1fr 280px;
     grid-template-rows: auto 1fr auto;
+}
+
+.chat-window.active {
+    display: grid;
 }
 
 .chat-window.minimized {
@@ -223,6 +263,9 @@ body {
     justify-content: space-between;
     align-items: center;
     box-shadow: inset 0 2px 0 var(--border-light);
+    grid-column: 1;
+    grid-row: 1;
+    align-self: start;
 }
 
 .chat-sidebar {
@@ -241,6 +284,9 @@ body {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    grid-column: 1;
+    grid-row: 2;
+    justify-content: flex-start;
 }
 
 .messages::-webkit-scrollbar {
@@ -267,6 +313,66 @@ body {
 
 .message.own-message {
     align-self: flex-end;
+}
+
+.message-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 7px;
+    gap: 10px;
+}
+
+.message-username {
+    color: var(--text-muted);
+    font-weight: bold;
+}
+
+.message-timestamp {
+    color: var(--text-muted);
+    font-size: 6px;
+}
+
+.message-reply-preview {
+    font-size: 7px;
+    color: var(--text-muted);
+    padding: 4px 6px;
+    background: var(--bg-panel);
+    border-left: 2px solid var(--highlight);
+    margin: 0 4px;
+}
+
+.message-content {
+    background: white;
+    border: 2px solid var(--border-dark);
+    padding: 10px 12px;
+    font-size: 8px;
+    line-height: 1.6;
+    box-shadow: 
+        inset 1px 1px 0 var(--border-light),
+        2px 2px 0 rgba(0,0,0,0.1);
+    word-wrap: break-word;
+}
+
+.message.own-message .message-content {
+    background: var(--bg-panel);
+}
+
+.message-reactions {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    padding: 0 4px;
+}
+
+.message-actions {
+    display: none;
+    gap: 6px;
+    padding: 0 4px;
+}
+
+.message:hover .message-actions {
+    display: flex;
 }
 
 .sender {
@@ -311,6 +417,11 @@ body {
     border-color: var(--text-main);
 }
 
+.reaction-count {
+    margin-left: 4px;
+    font-size: 9px;
+}
+
 .reactions {
     display: none;
     gap: 6px;
@@ -346,29 +457,39 @@ body {
     display: flex;
     border-top: 3px solid var(--border-dark);
     background: var(--bg-panel);
+    padding: 5px;
+    gap: 5px;
+    grid-column: 1;
+    grid-row: 3;
+    align-self: end;
 }
 
 .chat-input input[type="text"] {
     flex: 1;
     border: none;
-    padding: 12px;
+    padding: 6px 8px;
     font-family: 'Press Start 2P', cursive;
     font-size: 8px;
     background: white;
     color: var(--text-main);
     border-left: 2px solid var(--border-dark);
     border-right: 2px solid var(--border-dark);
+    height: 26px;
 }
 
 .chat-input button {
-    width: 50px;
-    border: none;
+    width: 40px;
+    height: 26px;
+    border: 2px solid var(--border-dark);
     background: var(--bg-panel);
     font-family: 'Press Start 2P', cursive;
-    font-size: 14px;
+    font-size: 12px;
     cursor: pointer;
     color: var(--text-main);
     transition: background 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .chat-input button:hover {
@@ -377,6 +498,24 @@ body {
 
 .chat-input button:active {
     background: var(--border-dark);
+}
+
+/* Emoji Picker */
+#emojiPicker {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.emoji-item {
+    cursor: pointer;
+    font-size: 20px;
+    padding: 5px;
+    text-align: center;
+    transition: transform 0.1s;
+}
+
+.emoji-item:hover {
+    transform: scale(1.2);
+    background: var(--highlight);
 }
 
 /* Members Panel */
@@ -460,6 +599,11 @@ body {
 .files-panel {
     grid-column: 2;
     grid-row: 1;
+    display: none;
+}
+
+.files-panel.active {
+    display: flex;
 }
 
 .files-content {
@@ -476,18 +620,14 @@ body {
     background: white;
     border: 2px solid var(--border-dark);
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 4px;
-    padding: 8px;
     font-size: 28px;
     cursor: pointer;
     box-shadow: 
         inset 1px 1px 0 var(--border-light),
         2px 2px 0 rgba(0,0,0,0.1);
     transition: transform 0.1s;
-    position: relative;
 }
 
 .file-item:hover {
@@ -502,23 +642,6 @@ body {
     box-shadow: 
         inset -1px -1px 0 rgba(0,0,0,0.2),
         1px 1px 0 rgba(0,0,0,0.1);
-}
-
-.file-icon {
-    font-size: 28px;
-}
-
-.file-name {
-    font-size: 6px;
-    text-align: center;
-    word-break: break-word;
-    line-height: 1.2;
-    max-height: 24px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
 }
 
 /* Rooms Panel */
@@ -602,6 +725,11 @@ body {
     grid-row: 1;
 }
 
+.notes-placeholder {
+    grid-column: 3;
+    grid-row: 1;
+}
+
 #replyIndicator {
     background: var(--highlight);
     border-top: 2px solid var(--border-dark);
@@ -619,4 +747,267 @@ body {
     cursor: pointer;
     font-family: inherit;
     font-size: 10px;
+}
+
+/* Notes Button */
+.chat-icon-btn {
+    background: transparent;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 8px;
+    transition: opacity 0.2s;
+}
+
+.chat-icon-btn:hover {
+    opacity: 0.8;
+}
+
+/* Modal Base Styles */
+.modal-overlay {
+    display: none !important;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 2000;
+    justify-content: center;
+    align-items: center;
+    flex-direction: row;
+}
+
+.modal-overlay.show {
+    display: flex !important;
+}
+
+.modal-overlay.notes-modal {
+    z-index: 9999;
+}
+
+.modal-content {
+    background: var(--bg-window);
+    border: 3px solid var(--border-dark);
+    padding: 20px;
+    max-width: 400px;
+    width: 90%;
+}
+
+.modal-content.notes-content {
+    max-width: 600px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Modal Header */
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.modal-title {
+    font-size: 10px;
+    margin: 0;
+}
+
+.modal-close-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+/* Notes Modal Specific */
+.notes-list {
+    flex: 1;
+    overflow-y: auto;
+    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.notes-input-area {
+    display: flex;
+    gap: 10px;
+}
+
+.notes-input {
+    flex: 1;
+    padding: 8px;
+    border: 2px solid var(--border-dark);
+    background: white;
+    font-family: 'Press Start 2P';
+    font-size: 8px;
+    color: var(--text-main);
+}
+
+.add-note-btn {
+    padding: 8px 15px;
+    background: var(--highlight);
+    border: 2px solid var(--border-dark);
+    font-family: 'Press Start 2P';
+    font-size: 8px;
+    cursor: pointer;
+    color: var(--text-main);
+}
+
+/* Modal Button Styles */
+.modal-button-group {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.modal-btn-cancel {
+    background: var(--border-dark);
+    color: white;
+    border: 2px solid var(--border-dark);
+    padding: 8px 15px;
+    cursor: pointer;
+    font-family: 'Press Start 2P';
+    font-size: 8px;
+}
+
+.modal-btn-confirm {
+    background: var(--highlight);
+    border: 2px solid var(--border-dark);
+    padding: 8px 15px;
+    cursor: pointer;
+    font-family: 'Press Start 2P';
+    font-size: 8px;
+}
+
+.modal-btn-full {
+    width: 100%;
+    background: var(--border-dark);
+    color: white;
+    border: 2px solid var(--border-dark);
+    padding: 8px 15px;
+    cursor: pointer;
+    font-family: 'Press Start 2P';
+    font-size: 8px;
+}
+
+/* Modal Input Fields */
+.modal-input {
+    width: 100%;
+    padding: 8px;
+    font-family: 'Press Start 2P';
+    font-size: 8px;
+    border: 2px solid var(--border-dark);
+}
+
+.modal-input-group {
+    margin-bottom: 10px;
+}
+
+.modal-input-group.last {
+    margin-bottom: 15px;
+}
+
+/* Modal Members List */
+.modal-members-list {
+    margin-bottom: 15px;
+    max-height: 150px;
+    overflow-y: auto;
+    background: var(--bg-panel);
+    padding: 10px;
+    border: 1px solid var(--border-dark);
+}
+
+.modal-members-loading {
+    color: var(--text-muted);
+    font-size: 7px;
+}
+
+/* Modal Profile Section */
+.modal-profile-section {
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.modal-profile-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+.modal-profile-username {
+    font-size: 10px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.modal-profile-status {
+    font-size: 8px;
+    color: var(--text-muted);
+}
+
+/* Chat Input Styles */
+.reply-preview {
+    display: none;
+    background: var(--bg-panel);
+    padding: 10px;
+    margin-bottom: 5px;
+    border-left: 3px solid var(--highlight);
+    font-size: 8px;
+}
+
+.reply-preview.show {
+    display: block;
+}
+
+.reply-preview-header {
+    display: flex;
+    justify-content: space-between;
+}
+
+.reply-preview-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.typing-indicator {
+    display: none;
+    color: var(--text-muted);
+    font-size: 8px;
+    padding: 5px;
+}
+
+.typing-indicator.show {
+    display: block;
+}
+
+.file-input-hidden {
+    display: none;
+}
+
+/* Emoji Picker */
+.emoji-picker {
+    display: none;
+    position: fixed;
+    background: var(--bg-window);
+    border: 2px solid var(--border-dark);
+    padding: 10px;
+    border-radius: 4px;
+    z-index: 1000;
+}
+
+.emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 5px;
+}
+
+/* Member List Styles */
+.member-list-item {
+    color: var(--text-muted);
+    font-size: 7px;
 }

@@ -2,6 +2,10 @@ console.log('Auth page loaded');
 
 // Use CONFIG from app.js (already declared globally)
 
+// Carousel state
+let currentCharacterIndex = 0;
+let selectedCharacterId = null;
+
 //Toast Notification Function
 function showToast(message, type = 'info'){
   // Create container if it doesn't exist
@@ -55,27 +59,82 @@ function showToast(message, type = 'info'){
   setTimeout(() => toast.remove(), 5000);
 }
 
-//Toggle between Login and Signup
+//Toggle between Login, Signup, and Character Select
 function showSignup(){
   const loginDiv = document.getElementById('login');
   const signupDiv = document.getElementById('signup');
+  const characterSelectDiv = document.getElementById('characterSelect');
   
-  if(loginDiv && signupDiv){
-    loginDiv.style.display = 'none';
-    signupDiv.style.display = 'flex';
-    console.log('Switched to signup form');
-  }
+  if(loginDiv) loginDiv.style.display = 'none';
+  if(signupDiv) signupDiv.style.display = 'flex';
+  if(characterSelectDiv) characterSelectDiv.style.display = 'none';
+  console.log('Switched to signup form');
 }
 
 function showLogin(){
   const loginDiv = document.getElementById('login');
   const signupDiv = document.getElementById('signup');
+  const characterSelectDiv = document.getElementById('characterSelect');
   
-  if(loginDiv && signupDiv){
-    signupDiv.style.display = 'none';
-    loginDiv.style.display = 'flex';
-    console.log('Switched to login form');
+  if(loginDiv) loginDiv.style.display = 'flex';
+  if(signupDiv) signupDiv.style.display = 'none';
+  if(characterSelectDiv) characterSelectDiv.style.display = 'none';
+  console.log('Switched to login form');
+}
+
+function showCharacterSelect(){
+  const loginDiv = document.getElementById('login');
+  const signupDiv = document.getElementById('signup');
+  const characterSelectDiv = document.getElementById('characterSelect');
+  
+  if(loginDiv) loginDiv.style.display = 'none';
+  if(signupDiv) signupDiv.style.display = 'none';
+  if(characterSelectDiv) characterSelectDiv.style.display = 'flex';
+  
+  // Reset to first character
+  currentCharacterIndex = 0;
+  updateCharacterDisplay();
+  
+  console.log('Switched to character select');
+}
+
+//Character Navigation Functions
+function updateCharacterDisplay(){
+  const slides = document.querySelectorAll('.character-slide');
+  
+  if(slides.length === 0) return;
+  
+  // Remove active class from all slides
+  slides.forEach(slide => slide.classList.remove('active'));
+  
+  // Add active class to current slide
+  if(slides[currentCharacterIndex]){
+    slides[currentCharacterIndex].classList.add('active');
+    selectedCharacterId = slides[currentCharacterIndex].getAttribute('data-character-id');
+    console.log('Showing character:', selectedCharacterId, 'at index:', currentCharacterIndex);
   }
+}
+
+function nextCharacter(){
+  const slides = document.querySelectorAll('.character-slide');
+  if(currentCharacterIndex < slides.length - 1){
+    currentCharacterIndex++;
+  } else {
+    // Loop back to first character
+    currentCharacterIndex = 0;
+  }
+  updateCharacterDisplay();
+}
+
+function prevCharacter(){
+  const slides = document.querySelectorAll('.character-slide');
+  if(currentCharacterIndex > 0){
+    currentCharacterIndex--;
+  } else {
+    // Loop to last character
+    currentCharacterIndex = slides.length - 1;
+  }
+  updateCharacterDisplay();
 }
 
 //Register Function
@@ -117,15 +176,18 @@ async function handleRegister(event){
     });
 
     if(response.ok){
-      showToast('Account created! Please login.', 'success');
+      showToast('Account created! Please select your character.', 'success');
       
       //Clear form
       usernameInput.value = '';
       passwordInput.value = '';
       
-      //Switch to login form
+      //Save username temporarily for character selection
+      sessionStorage.setItem('newUserUsername', username);
+      
+      //Switch to character select
       setTimeout(() => {
-        showLogin();
+        showCharacterSelect();
       }, 1000);
     }else{
       const text = await response.text();
@@ -133,6 +195,64 @@ async function handleRegister(event){
     }
   }catch (err){
     console.error('Registration error:', err);
+    showToast('Error: ' + err.message, 'error');
+  }
+}
+
+//Character Selection Function
+async function handleCharacterSelect(){
+  console.log('Character select button clicked');
+  
+  if(!selectedCharacterId){
+    showToast('Please select a character', 'error');
+    return;
+  }
+  
+  const username = sessionStorage.getItem('newUserUsername');
+  
+  if(!username){
+    showToast('Session expired. Please log in.', 'error');
+    showLogin();
+    return;
+  }
+
+  console.log('Selected character:', selectedCharacterId);
+
+  try{
+    // Save character selection to backend
+    const response = await fetch(`${CONFIG.API_BASE}/user/character`,{
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, characterId: selectedCharacterId })
+    });
+
+    if(response.ok){
+      showToast('Character selected!', 'success');
+      
+      // Save to session
+      sessionStorage.setItem('currentUser', username);
+      sessionStorage.setItem('selectedCharacter', selectedCharacterId);
+      
+      // Clear temporary storage
+      sessionStorage.removeItem('newUserUsername');
+      
+      //Use the global authentication function from app.js
+      if(typeof setAuthenticated === 'function'){
+        setAuthenticated('user-token-' + Date.now());
+      }
+      
+      //Navigate to landing page
+      setTimeout(() => {
+        if(typeof navigateTo === 'function'){
+          navigateTo('landing');
+        }
+      }, 1000);
+    }else{
+      const text = await response.text();
+      showToast(text || 'Failed to save character', 'error');
+    }
+  }catch (err){
+    console.error('Character selection error:', err);
     showToast('Error: ' + err.message, 'error');
   }
 }
@@ -195,7 +315,7 @@ async function handleLogin(event){
         console.error('setAuthenticated function not found');
       }
       
-      //Navigate to landing page
+      //Navigate to landing page (existing users already have character)
       setTimeout(() => {
         if(typeof navigateTo === 'function'){
           navigateTo('landing');
@@ -230,6 +350,12 @@ function initAuthPage(){
     const signupToggleBtn = document.querySelector('#login .signup_btn');
     const loginToggleBtn = document.querySelector('#signup .log_btn');
     
+    // Get carousel controls
+    const prevBtn = document.getElementById('prevChar');
+    const nextBtn = document.getElementById('nextChar');
+    const selectCharBtn = document.getElementById('selectCharacterBtn');
+    const characterSlides = document.querySelectorAll('.character-slide');
+    
     //Debug: Check if elements exist
     console.log('Login form found:', !!loginForm);
     console.log('Signup form found:', !!signupForm);
@@ -237,6 +363,8 @@ function initAuthPage(){
     console.log('Register button found:', !!registerButton);
     console.log('Signup toggle found:', !!signupToggleBtn);
     console.log('Login toggle found:', !!loginToggleBtn);
+    console.log('Carousel controls found:', !!prevBtn, !!nextBtn, !!selectCharBtn);
+    console.log('Character slides found:', characterSlides.length);
     
     // Add event listeners for LOGIN
     if(loginForm){
@@ -283,6 +411,28 @@ function initAuthPage(){
       console.log('✓ Login toggle listener added');
     }
     
+    // Add event listeners for CHARACTER NAVIGATION
+    if(prevBtn){
+      prevBtn.addEventListener('click', prevCharacter);
+      console.log('✓ Previous button listener added');
+    }
+    
+    if(nextBtn){
+      nextBtn.addEventListener('click', nextCharacter);
+      console.log('✓ Next button listener added');
+    }
+    
+    if(selectCharBtn){
+      selectCharBtn.addEventListener('click', handleCharacterSelect);
+      console.log('✓ Select character button listener added');
+    }
+    
+    // Initialize character display
+    if(characterSlides.length > 0){
+      updateCharacterDisplay();
+      console.log('✓ Character display initialized');
+    }
+    
     // Make sure login is shown by default
     showLogin();
     
@@ -290,7 +440,7 @@ function initAuthPage(){
     
     // Check for existing session after initialization
     checkExistingSession();
-  }, 150); // Increased timeout to ensure DOM is fully ready
+  }, 150);
 }
 
 //Check for Existing Session

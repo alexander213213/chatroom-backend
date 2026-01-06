@@ -8,13 +8,10 @@
 }
 
 body {
-  font-family: 'Courier New', monospace;
+  font-family: Pixellari;
   background: #654E66;
   color: #2a1810;
-  image-rendering: pixelated;
   overflow-x: hidden;
-  image-rendering: -moz-crisp-edges;
-  image-rendering: pixelated;
 }
 
 :root {
@@ -153,15 +150,6 @@ body {
 .profile-details h2 {
   font-size: 24px;
   margin-bottom: 10px;
-}
-
-.profile-meta {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 12px;
-  margin-bottom: 15px;
-  opacity: 0.9;
 }
 
 .profile-stats {

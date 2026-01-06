@@ -1,16 +1,197 @@
+// ============================================
+// LOAD HEAD RESOURCES (CSS & Libraries)
+// ============================================
+(function loadHeadResources() {
+    // Load CSS
+    const cssLink = document.createElement('link');
+    cssLink.rel = 'stylesheet';
+    cssLink.href = 'room.css';
+    document.head.appendChild(cssLink);
+    
+    // Load SockJS
+    const sockjsScript = document.createElement('script');
+    sockjsScript.src = 'https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js';
+    document.head.appendChild(sockjsScript);
+    
+    // Load Stomp
+    const stompScript = document.createElement('script');
+    stompScript.src = 'https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js';
+    document.head.appendChild(stompScript);
+    
+    // Set meta charset and title
+    const meta = document.createElement('meta');
+    meta.charset = 'UTF-8';
+    document.head.appendChild(meta);
+    
+    if (!document.title) {
+        document.title = 'Chat Room';
+    }
+})();
+
+// Configuration
+const CONFIG = {
+    API_BASE: window.location.origin,
+    WS_BASE: window.location.origin + '/ws'
+};
+
 let currentUsername = null;
 let currentRoom = null;
 let stompClient = null;
 let rooms = [];
 let messages = {};
+let notes = {}; // Store notes for each room
 let typingTimeout = null;
 let replyToMessage = null;
 let editingMessageId = null;
+let editingNoteId = null;
 let emojiPickerTarget = null;
 let timestampUpdateInterval = null;
 let userStatusMap = {}; // Track online/offline status for all users
 
 const emojis = ['👍', '❤️', '😂', '😮', '😢', '😭', '🎉', '🔥', '👀', '💯', '✨', '🚀'];
+
+// ============================================
+// NOTIFICATION SYSTEM
+// ============================================
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${type === 'error' ? '#d87d7d' : type === 'success' ? '#7db87d' : '#c98b73'};
+        border: 2px solid #8b5a3c;
+        padding: 15px 20px;
+        border-radius: 4px;
+        color: #4a2c1a;
+        font-family: 'Press Start 2P';
+        font-size: 8px;
+        max-width: 300px;
+        z-index: 10000;
+        animation: slideIn 0.3s ease-out;
+    `;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease-out';
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
+// Add animation styles if not already in CSS
+if (!document.getElementById('notificationStyles')) {
+    const style = document.createElement('style');
+    style.id = 'notificationStyles';
+    style.textContent = `
+        @keyframes slideIn {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(400px); opacity: 0; }
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+// ============================================
+// MODAL UTILITIES (from room.html)
+// ============================================
+function openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.add('show');
+    } else {
+        console.error('Modal not found:', modalId);
+    }
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.remove('show');
+    }
+    
+    // Clear inputs
+    if (modalId === 'createRoomModal') {
+        const input = document.getElementById('roomName');
+        if (input) input.value = '';
+    }
+    if (modalId === 'inviteMembersModal') {
+        const input = document.getElementById('inviteUsername');
+        if (input) input.value = '';
+    }
+    if (modalId === 'notesModal') {
+        const input = document.getElementById('noteInput');
+        if (input) input.value = '';
+    }
+}
+
+// Window controls handler
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('window-btn')) {
+        const action = e.target.dataset.action;
+        
+        if (action === 'minimize-chat') {
+            const chatSection = document.querySelector('.chat-window');
+            if (chatSection) {
+                const isHidden = chatSection.classList.contains('minimized');
+                if (isHidden) {
+                    chatSection.classList.remove('minimized');
+                    chatSection.style.display = 'flex';
+                } else {
+                    chatSection.classList.add('minimized');
+                    chatSection.style.display = 'none';
+                }
+            }
+        } else if (action === 'close-chat') {
+            const chatSection = document.querySelector('.chat-window');
+            if (chatSection) chatSection.style.display = 'none';
+        } else if (action === 'minimize-files') {
+            const filesPanel = document.querySelector('.files-panel');
+            if (filesPanel) {
+                const isHidden = filesPanel.classList.contains('minimized');
+                filesPanel.classList.toggle('minimized');
+                filesPanel.style.display = isHidden ? 'block' : 'none';
+                
+                const filesPH = document.querySelector('.files-placeholder');
+                if (filesPH) {
+                    filesPH.classList.toggle('minimized');
+                    filesPH.style.display = isHidden ? 'block' : 'none';
+                }
+            }
+        } else if (action === 'minimize-rooms') {
+            const roomsPanel = document.querySelector('.rooms-panel');
+            if (roomsPanel) {
+                const isHidden = roomsPanel.classList.contains('minimized');
+                roomsPanel.classList.toggle('minimized');
+                roomsPanel.style.display = isHidden ? 'block' : 'none';
+            }
+        }
+    }
+});
+
+// Room context menu for delete/invite
+document.addEventListener('contextmenu', function(e) {
+    const roomItem = e.target.closest('.room-item');
+    if (roomItem && currentRoom) {
+        e.preventDefault();
+        openModal('inviteMembersModal');
+    }
+});
+
+// Display current username in header
+document.addEventListener('DOMContentLoaded', function() {
+    const userDisplay = document.getElementById('currentUserDisplay');
+    if (userDisplay) {
+        // For development: comment out the line below to use localStorage values
+        // localStorage.setItem('username', 'TestUser'); // Dev only - remove for production
+        userDisplay.textContent = localStorage.getItem('username') || sessionStorage.getItem('username') || 'Guest';
+    }
+});
 
 // ============================================
 // API LAYER
@@ -33,7 +214,7 @@ const api = {
         if (response.status === 401) {
             localStorage.removeItem('token');
             localStorage.removeItem('username');
-            window.location.href = 'login.html';
+            window.location.href = 'auth.html';
             return;
         }
         
@@ -138,7 +319,7 @@ async function getUserAvatar(username) {
             }
         }
     } catch (error) {
-        console.log(`Could not fetch profile for ${username}, using generated avatar`);
+        // Fallback to generated avatar silently
     }
     
     // Fallback to generated avatar
@@ -178,40 +359,71 @@ function generateDefaultAvatar(username) {
 
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', function init() {
-    console.log('Room page initialized');
+    // Check authentication
+    const token = localStorage.getItem('token');
+    const username = localStorage.getItem('username');
     
-    // Set current username
-    currentUsername = window.getCurrentUser ? window.getCurrentUser() : (localStorage.getItem('username') || 'Guest');
-    
-    // Set dummy room for standalone testing
-    currentRoom = { id: 'mga-paa', name: 'Mga Paa' };
-    if (!messages[currentRoom.id]) {
-        messages[currentRoom.id] = [];
+    if (!token || !username) {
+        window.location.href = 'auth.html';
+        return;
     }
     
-    // Don't add dummy messages - will load from WebSocket/API
+    // Set current username
+    currentUsername = username;
+    
+    // Update top bar with current user
+    updateTopBar();
     
     setupEventListeners();
     
-    // Load room data immediately
-    loadRoomMembers(currentRoom.id);
-    loadRoomFiles(currentRoom.id);
-    loadAvailableRooms();
-    
-    // Subscribe to WebSocket if connected
-    if (window.stompClient && window.stompClient.connected) {
-        subscribeToRoom(currentRoom.id);
-        subscribeToUserStatus();
-        console.log('WebSocket connected - subscribed to room and status updates');
-    } else {
-        console.warn('WebSocket not connected yet - will subscribe when connection is established');
-    }
-    
-    // Render initial empty state
-    renderMessages();
+    // Load rooms and initialize
+    loadRooms().then(() => {
+        // Connect WebSocket after rooms are loaded
+        connectWebSocket();
+        
+        // Update timestamps every minute
+        timestampUpdateInterval = setInterval(() => {
+            if (currentRoom && messages[currentRoom.id] && messages[currentRoom.id].length > 0) {
+                const container = document.getElementById('messagesContainer');
+                const messageElements = container.querySelectorAll('.message');
+                messageElements.forEach(msgEl => {
+                    const msgId = parseInt(msgEl.dataset.messageId);
+                    const msg = messages[currentRoom.id].find(m => m.id === msgId);
+                    if (msg && msg.timestamp) {
+                        const timestampEl = msgEl.querySelector('.message-timestamp');
+                        if (timestampEl) {
+                            timestampEl.textContent = formatTime(msg.timestamp);
+                        }
+                    }
+                });
+            }
+        }, 60000);
+    }).catch(error => {
+        console.error('Failed to load rooms:', error);
+    });
 });
 
 function setupEventListeners() {
+    // Top bar - Icon buttons
+    const topIcons = document.querySelectorAll('.top-icons .icon-btn');
+    if (topIcons.length >= 2) {
+        // Notifications button
+        topIcons[0].addEventListener('click', toggleNotificationModal);
+        
+        // Home button
+        topIcons[1].addEventListener('click', goHome);
+    }
+    
+    // View profile link
+    const viewProfile = document.querySelector('.view-profile');
+    if (viewProfile) {
+        viewProfile.addEventListener('click', (e) => {
+            e.preventDefault();
+            // Navigate to dashboard
+            window.location.href = 'dashboard.html';
+        });
+    }
+    
     // Create room
     const createRoomBtn = document.getElementById('createRoomBtn');
     if (createRoomBtn) {
@@ -223,12 +435,6 @@ function setupEventListeners() {
     const confirmCreateRoom = document.getElementById('confirmCreateRoom');
     if (confirmCreateRoom) {
         confirmCreateRoom.addEventListener('click', createRoom);
-    }
-    
-    // Logout
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', logout);
     }
     
     // Room members
@@ -302,30 +508,6 @@ function setupEventListeners() {
         });
     });
 
-    const viewProfileBtn = document.getElementById('viewProfileBtn');
-    if (viewProfileBtn) {
-        viewProfileBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (typeof window.navigateTo === 'function') {
-                window.navigateTo('dashboard');
-            } else {
-                console.error('navigateTo function not available');
-            }
-        });
-    }
-
-    const homeBtn = document.getElementById('homeBtn');
-    if (homeBtn) {
-        homeBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (typeof window.navigateTo === 'function') {
-                window.navigateTo('landing');
-            } else {
-                console.error('navigateTo function not available');
-            }
-        });
-    }
-
     // Window controls
     setupWindowControls();
     
@@ -339,6 +521,168 @@ function setupEventListeners() {
             picker.style.display = 'none';
         }
     });
+
+    // Notes event listeners
+    const notesBtn = document.getElementById('notesBtn');
+    const addNoteBtn = document.getElementById('addNoteBtn');
+    const noteInput = document.getElementById('noteInput');
+    
+    
+    if (notesBtn) {
+        notesBtn.addEventListener('click', () => {
+            openModal('notesModal');
+        });
+    }
+    
+    if (addNoteBtn) {
+        addNoteBtn.addEventListener('click', sendNote);
+    }
+    
+    if (noteInput) {
+        noteInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                sendNote();
+            }
+        });
+    }
+}
+
+// ============================================
+// TOP BAR FUNCTIONS (From dashboard)
+// ============================================
+
+// Toggle notification modal
+function toggleNotificationModal() {
+    const modal = document.getElementById('notificationModal');
+    if (!modal) {
+        createNotificationModal();
+        document.getElementById('notificationModal').style.display = 'block';
+    } else {
+        modal.style.display = modal.style.display === 'none' ? 'block' : 'none';
+    }
+}
+
+// Create notification modal
+function createNotificationModal() {
+    if (document.getElementById('notificationModal')) return;
+    
+    const modal = document.createElement('div');
+    modal.id = 'notificationModal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 90px;
+        right: 30px;
+        width: 350px;
+        max-height: 500px;
+        background: var(--bg-panel);
+        border: 3px solid var(--border-dark);
+        border-radius: 0;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        z-index: 1000;
+        display: none;
+        overflow: hidden;
+    `;
+    
+    modal.innerHTML = `
+        <div style="padding: 15px; border-bottom: 3px solid var(--border-dark); background: var(--bg-panel);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="color: var(--text-main); font-size: 12px; margin: 0; letter-spacing: 1px;">NOTIFICATIONS</h3>
+                <button id="closeNotifModal" style="
+                    background: transparent;
+                    border: none;
+                    color: var(--text-main);
+                    font-size: 18px;
+                    cursor: pointer;
+                    padding: 0;
+                    width: 24px;
+                    height: 24px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                ">×</button>
+            </div>
+        </div>
+        <div id="notificationList" style="max-height: 400px; overflow-y: auto; padding: 10px;"></div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    document.getElementById('closeNotifModal').addEventListener('click', () => {
+        modal.style.display = 'none';
+    });
+    
+    document.addEventListener('click', (e) => {
+        if (!modal.contains(e.target) && !e.target.closest('.icon-btn')) {
+            modal.style.display = 'none';
+        }
+    });
+    
+    renderNotifications();
+}
+
+// Render notifications in modal
+function renderNotifications() {
+    const notifList = document.getElementById('notificationList');
+    if (!notifList) return;
+    
+    const mockNotifications = [
+        { id: 1, type: 'message', text: 'New message in ' + (currentRoom?.name || 'room'), time: '5m ago' },
+        { id: 2, type: 'invite', text: 'You have been invited to a room', time: '1h ago' },
+        { id: 3, type: 'status', text: 'A team member came online', time: '2h ago' }
+    ];
+    
+    if (mockNotifications.length === 0) {
+        notifList.innerHTML = `
+            <div style="text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 8px;">
+                No new notifications
+            </div>
+        `;
+        return;
+    }
+    
+    notifList.innerHTML = mockNotifications.map(notif => `
+        <div class="notification-item" data-id="${notif.id}" style="
+            background: white;
+            border: 2px solid var(--border-dark);
+            padding: 12px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            cursor: pointer;
+            transition: all 0.2s;
+        ">
+            <div style="flex: 1;">
+                <div style="color: var(--text-main); font-size: 8px; margin-bottom: 4px; font-weight: bold;">
+                    ${notif.type === 'invite' ? '📨' : notif.type === 'status' ? '🟢' : '💬'} ${notif.text}
+                </div>
+                <div style="color: var(--text-muted); font-size: 7px;">
+                    ${notif.time}
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Go home (navigate to landing/dashboard)
+function goHome() {
+    if (typeof navigateTo === 'function') {
+        navigateTo('landing');
+    } else {
+        window.location.href = 'index.html';
+    }
+}
+
+// Update top bar with current user info
+function updateTopBar() {
+    const topAvatar = document.querySelector('.top-bar .avatar');
+    const topUsername = document.querySelector('.top-bar .username');
+    const currentUserDisplay = document.getElementById('currentUserDisplay');
+    
+    if (topAvatar) topAvatar.textContent = '👨‍💻';
+    if (topUsername) topUsername.textContent = currentUsername || 'Loading...';
+    if (currentUserDisplay) currentUserDisplay.textContent = currentUsername || 'Loading...';
 }
 
 // Modal management
@@ -380,7 +724,7 @@ async function logout() {
     
     localStorage.removeItem('token');
     localStorage.removeItem('username');
-    window.location.href = 'login.html';
+    window.location.href = 'auth.html';
 }
 
 // Room management - Load rooms
@@ -388,8 +732,13 @@ async function loadRooms() {
     try {
         const response = await api.getRooms();
         if (response.ok) {
-            const roomsList = await response.json();
+            const data = await response.json();
+            // Handle both array and object with rooms property
+            const roomsList = Array.isArray(data) ? data : (data.rooms || []);
+            rooms = roomsList; // Store globally
             renderRooms(roomsList);
+        } else {
+            console.error('Failed to load rooms:', response.status);
         }
     } catch (error) {
         console.error('Error loading rooms:', error);
@@ -397,26 +746,27 @@ async function loadRooms() {
 }
 
 // Room management - Render rooms
-function renderRooms(rooms = []) {
-    const roomsList = document.getElementById('roomsList');
-    if (!roomsList) return;
+function renderRooms(roomsList = []) {
+    const roomsContent = document.querySelector('.rooms-content');
+    if (!roomsContent) return;
     
-    roomsList.innerHTML = '';
+    roomsContent.innerHTML = '';
     
-    if (rooms.length === 0) {
-        roomsList.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 12px;">No rooms yet. Create one!</div>';
+    if (roomsList.length === 0) {
+        roomsContent.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 12px;">No rooms yet. Create one!</div>';
         return;
     }
     
-    rooms.forEach(room => {
+    roomsList.forEach(room => {
         const roomDiv = document.createElement('div');
         roomDiv.className = 'room-item';
+        roomDiv.dataset.roomId = room.id;
         if (currentRoom && currentRoom.id === room.id) {
             roomDiv.classList.add('active');
         }
-        roomDiv.textContent = room.name;
+        roomDiv.innerHTML = `<span class="room-icon">${room.icon || '💬'}</span><span>${room.name}</span>`;
         roomDiv.addEventListener('click', () => selectRoomFromList(room));
-        roomsList.appendChild(roomDiv);
+        roomsContent.appendChild(roomDiv);
     });
 }
 
@@ -428,21 +778,25 @@ async function createRoom() {
     const roomName = roomNameInput.value.trim();
     
     if (!roomName) {
-        alert('Please enter a room name');
+        showNotification('Please enter a room name', 'error');
         return;
     }
     
     try {
         const response = await api.createRoom(roomName);
         if (response.ok) {
+            roomNameInput.value = '';
             closeModal('createRoomModal');
             await loadRooms();
+            showNotification('Room created successfully', 'success');
+        } else if (response.status === 409) {
+            showNotification('Room already exists', 'error');
         } else {
-            alert('Failed to create room');
+            showNotification('Failed to create room', 'error');
         }
     } catch (error) {
         console.error('Error creating room:', error);
-        alert('Could not create room');
+        showNotification('Could not create room', 'error');
     }
 }
 
@@ -451,12 +805,21 @@ async function loadMessages(roomId) {
     try {
         const response = await api.getMessages(roomId);
         if (response.ok) {
-            const loadedMessages = await response.json();
-            messages[roomId] = loadedMessages;
+            const data = await response.json();
+            // Handle both array and object with messages property
+            messages[roomId] = Array.isArray(data) ? data : (data.messages || []);
             renderMessages();
+        } else {
+            console.error('Failed to load messages:', response.status);
+            // Try to load from localStorage
+            const storedMessages = localStorage.getItem(`messages_${roomId}`);
+            messages[roomId] = storedMessages ? JSON.parse(storedMessages) : [];
         }
     } catch (error) {
         console.error('Error loading messages:', error);
+        // Try to load from localStorage
+        const storedMessages = localStorage.getItem(`messages_${roomId}`);
+        messages[roomId] = storedMessages ? JSON.parse(storedMessages) : [];
     }
 }
 
@@ -504,12 +867,13 @@ async function inviteUser() {
         if (response.ok) {
             inviteUsernameInput.value = '';
             await showRoomMembers(); // Refresh members list
+            showNotification('User invited successfully', 'success');
         } else {
-            alert('Failed to invite user');
+            showNotification('Failed to invite user', 'error');
         }
     } catch (error) {
         console.error('Error inviting user:', error);
-        alert('Could not invite user');
+        showNotification('Could not invite user', 'error');
     }
 }
 
@@ -531,26 +895,30 @@ async function deleteCurrentRoom() {
             
             const roomMembersBtn = document.getElementById('roomMembersBtn');
             const deleteRoomBtn = document.getElementById('deleteRoomBtn');
+            const messageInputContainer = document.getElementById('messageInputContainer');
+            const filesContent = document.getElementById('filesContent');
             if (roomMembersBtn) roomMembersBtn.style.display = 'none';
             if (deleteRoomBtn) deleteRoomBtn.style.display = 'none';
+            if (messageInputContainer) messageInputContainer.style.display = 'none';
+            if (filesContent) filesContent.style.display = 'none';
             
             const container = document.getElementById('messagesContainer');
             if (container) {
                 container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-muted);">Select a room to start chatting</div>';
             }
+            showNotification('Room deleted successfully', 'success');
         } else if (response.status === 403) {
-            alert('You do not have permission to delete this room');
+            showNotification('You do not have permission to delete this room', 'error');
         }
     } catch (error) {
         console.error('Error deleting room:', error);
-        alert('Could not delete room');
+        showNotification('Could not delete room', 'error');
     }
 }
 
 // Helper function to select room from list
 function selectRoomFromList(room) {
     selectRoom(room);
-    loadRooms(); // Refresh room list to show active state
 }
 
 function setupWindowControls() {
@@ -559,14 +927,23 @@ function setupWindowControls() {
     const roomsPanel = document.querySelector('.rooms-panel');
 
     // Minimize/Restore chat window
-    document.querySelector('[data-action="minimize-chat"]')?.addEventListener('click', () => {
-        chatWindow.classList.toggle('minimized');
+    document.querySelector('[data-action="minimize-chat"]')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const chatMain = chatWindow.querySelector('.chat-main');
+        if (chatMain.style.display === 'none') {
+            chatMain.style.display = 'grid';
+        } else {
+            chatMain.style.display = 'none';
+        }
     });
 
-    // Also restore on titlebar click when minimized
+    // Restore on titlebar click when minimized
     document.querySelector('.chat-titlebar')?.addEventListener('click', (e) => {
-        if (chatWindow.classList.contains('minimized') && !e.target.classList.contains('window-btn')) {
-            chatWindow.classList.remove('minimized');
+        if (!e.target.classList.contains('window-btn')) {
+            const chatMain = chatWindow.querySelector('.chat-main');
+            if (chatMain.style.display === 'none') {
+                chatMain.style.display = 'grid';
+            }
         }
     });
 
@@ -580,28 +957,45 @@ function setupWindowControls() {
         document.querySelector('.files-placeholder').classList.add('visible');
         
         // Keep rooms panel visible
-        console.log('Chat closed - Rooms panel remains open');
     });
 
     // Minimize/Restore files panel
-    document.querySelector('[data-action="minimize-files"]')?.addEventListener('click', () => {
-        filesPanel.classList.toggle('minimized');
+    document.querySelector('[data-action="minimize-files"]')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const filesContent = filesPanel.querySelector('.files-content');
+        if (filesContent.style.display === 'none') {
+            filesContent.style.display = 'block';
+        } else {
+            filesContent.style.display = 'none';
+        }
     });
 
     document.querySelector('.files-panel .window-titlebar')?.addEventListener('click', (e) => {
-        if (filesPanel.classList.contains('minimized') && !e.target.classList.contains('window-btn')) {
-            filesPanel.classList.remove('minimized');
+        if (!e.target.classList.contains('window-btn')) {
+            const filesContent = filesPanel.querySelector('.files-content');
+            if (filesContent.style.display === 'none') {
+                filesContent.style.display = 'block';
+            }
         }
     });
 
     // Minimize/Restore rooms panel
-    document.querySelector('[data-action="minimize-rooms"]')?.addEventListener('click', () => {
-        roomsPanel.classList.toggle('minimized');
+    document.querySelector('[data-action="minimize-rooms"]')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const roomsContent = roomsPanel.querySelector('.rooms-content');
+        if (roomsContent.style.display === 'none') {
+            roomsContent.style.display = 'block';
+        } else {
+            roomsContent.style.display = 'none';
+        }
     });
 
     document.querySelector('.rooms-panel .window-titlebar')?.addEventListener('click', (e) => {
-        if (roomsPanel.classList.contains('minimized') && !e.target.classList.contains('window-btn')) {
-            roomsPanel.classList.remove('minimized');
+        if (!e.target.classList.contains('window-btn')) {
+            const roomsContent = roomsPanel.querySelector('.rooms-content');
+            if (roomsContent.style.display === 'none') {
+                roomsContent.style.display = 'block';
+            }
         }
     });
 
@@ -619,9 +1013,14 @@ function setupWindowControls() {
             document.querySelector('.chat-placeholder').classList.remove('visible');
             document.querySelector('.files-placeholder').classList.remove('visible');
             
+            // Reset minimized states - show content
+            const chatMain = chatWindow.querySelector('.chat-main');
+            const filesContent = filesPanel.querySelector('.files-content');
+            chatMain.style.display = 'grid';
+            filesContent.style.display = 'block';
+            
             const roomId = roomItem.dataset.roomId;
             const roomName = roomItem.textContent.trim();
-            console.log('Room selected:', roomName);
             
             // Update room title
             document.querySelector('.chat-titlebar .window-title').textContent = roomName;
@@ -637,10 +1036,8 @@ function handleFileSelect(event) {
     const file = event.target.files[0];
     if (!file) return;
     
-    console.log(`File selected: ${file.name}, size: ${file.size} bytes, type: ${file.type}`);
-    
     if (!currentRoom) {
-        alert('Please select a room first');
+        showNotification('Please select a room first', 'error');
         event.target.value = ''; // Reset input
         return;
     }
@@ -648,7 +1045,7 @@ function handleFileSelect(event) {
     // Check file size (e.g., 10MB limit)
     const maxSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxSize) {
-        alert('File is too large. Maximum size is 10MB.');
+        showNotification('File is too large. Maximum size is 10MB.', 'error');
         event.target.value = ''; // Reset input
         return;
     }
@@ -664,15 +1061,12 @@ function handleFileSelect(event) {
 async function uploadFile(file) {
     if (!currentRoom) return;
     
-    console.log(`Uploading file: ${file.name} to room: ${currentRoom.name}`);
-    
     try {
         const response = await api.uploadFile(currentRoom.id, file);
         
         if (response.ok) {
-            console.log('File uploaded successfully');
-            alert('File uploaded successfully!');
-            loadRoomFiles(currentRoom.id);
+            showNotification('File uploaded successfully', 'success');
+            await loadRoomFiles(currentRoom.id);
         } else {
             throw new Error('Upload failed');
         }
@@ -685,25 +1079,37 @@ async function uploadFile(file) {
         window.localFiles[currentRoom.id].push({
             id: Date.now(),
             name: file.name,
-            icon: getFileIcon(file.type),
+            icon: getFileIcon(file.name), // Use filename for better icon mapping
+            type: file.type,
             size: file.size
         });
         
-        alert(`File "${file.name}" added locally (offline mode)`);
         renderRoomFiles();
     }
 }
 
 // Get appropriate icon for file type
-function getFileIcon(mimeType) {
-    if (mimeType.startsWith('image/')) return '📷';
-    if (mimeType.startsWith('video/')) return '🎬';
-    if (mimeType.startsWith('audio/')) return '🎵';
-    if (mimeType.includes('pdf')) return '📄';
-    if (mimeType.includes('word')) return '📄';
-    if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return '📊';
-    if (mimeType.includes('powerpoint') || mimeType.includes('presentation')) return '📊';
-    if (mimeType.includes('zip') || mimeType.includes('rar')) return '📦';
+function getFileIcon(mimeTypeOrFilename) {
+    const lowerInput = (mimeTypeOrFilename || '').toLowerCase();
+    
+    // Check by file extension first (more reliable)
+    if (lowerInput.endsWith('.pdf')) return '📄';
+    if (lowerInput.endsWith('.pptx') || lowerInput.endsWith('.ppt')) return '📄';
+    if (lowerInput.endsWith('.xlsx') || lowerInput.endsWith('.xls')) return '📊';
+    if (lowerInput.endsWith('.jpg') || lowerInput.endsWith('.jpeg') || lowerInput.endsWith('.png') || lowerInput.endsWith('.gif') || lowerInput.endsWith('.bmp')) return '📷';
+    if (lowerInput.endsWith('.txt')) return '📋';
+    
+    // Check by MIME type
+    if (lowerInput.includes('pdf')) return '📄';
+    if (lowerInput.includes('powerpoint') || lowerInput.includes('presentation')) return '📄';
+    if (lowerInput.includes('excel') || lowerInput.includes('spreadsheet')) return '📊';
+    if (lowerInput.startsWith('image/')) return '📷';
+    if (lowerInput.includes('text/plain')) return '📋';
+    if (lowerInput.startsWith('video/')) return '🎬';
+    if (lowerInput.startsWith('audio/')) return '🎵';
+    if (lowerInput.includes('zip') || lowerInput.includes('rar') || lowerInput.includes('archive')) return '📦';
+    if (lowerInput.includes('word') || lowerInput.includes('document')) return '📄';
+    
     return '📄'; // Default file icon
 }
 
@@ -774,8 +1180,6 @@ function editMessage(messageId) {
 function deleteMessage(messageId) {
     if (!confirm('Delete this message?')) return;
     if (!currentRoom) return;
-    
-    console.log('Deleting message:', messageId);
     
     if (stompClient && stompClient.connected) {
         stompClient.send(`/app/rooms/${currentRoom.id}/message`, {}, JSON.stringify({
@@ -924,7 +1328,6 @@ function sendMessage() {
     const content = messageInput.value.trim();
     
     if (!content) {
-        console.log('Message is empty');
         return;
     }
     
@@ -960,7 +1363,6 @@ function sendMessage() {
                 stompClient.send(`/app/rooms/${currentRoom.id}/message`, {}, JSON.stringify(message));
             }
             
-            console.log('Message sent via WebSocket:', content);
         } catch (error) {
             console.error('Error sending message via WebSocket:', error);
         }
@@ -986,6 +1388,8 @@ function sendMessage() {
         }
         
         messages[currentRoom.id].push(localMessage);
+        // Save to localStorage
+        localStorage.setItem(`messages_${currentRoom.id}`, JSON.stringify(messages[currentRoom.id]));
         renderMessages();
     }
     
@@ -1183,7 +1587,12 @@ function escapeHtml(text) {
 function scrollToBottom() {
     const container = document.getElementById('messagesContainer');
     if (container) {
-        container.scrollTop = container.scrollHeight;
+        // If no messages, scroll to top; otherwise scroll to bottom
+        if (!currentRoom || !messages[currentRoom.id] || messages[currentRoom.id].length === 0) {
+            container.scrollTop = 0;
+        } else {
+            container.scrollTop = container.scrollHeight;
+        }
     }
 }
 
@@ -1197,10 +1606,10 @@ async function loadRoomMembers(roomId) {
         const response = await api.getRoomMembers(roomId);
         if (!response.ok) throw new Error('API unavailable');
         const data = await response.json();
-        console.log('Room members loaded from API:', data.members);
+        console.log('Room members loaded from API:', data);
         
         // Extract member usernames and render
-        const membersList = data.members || [];
+        const membersList = Array.isArray(data) ? data : (data.members || []);
         renderTeamMembers(membersList);
     } catch (error) {
         // Offline mode - show no members
@@ -1294,14 +1703,22 @@ function updateUserStatus() {
 
 // Load files for a room
 async function loadRoomFiles(roomId) {
+    if (!roomId) return;
+    
     try {
         const response = await api.getRoomFiles(roomId);
         if (!response.ok) throw new Error('API unavailable');
         const data = await response.json();
-        console.log('Room files loaded from API:', data.files);
+        
+        // Store files if we get them
+        if (data && data.files) {
+            if (!window.serverFiles) window.serverFiles = {};
+            window.serverFiles[roomId] = data.files;
+            console.log('Room files loaded from API:', data.files);
+        }
     } catch (error) {
         // Offline mode - files panel will be empty or use local files
-        console.warn('Offline mode: files panel disabled');
+        console.warn('Offline mode: files from server unavailable');
     }
     renderRoomFiles();
 }
@@ -1318,13 +1735,18 @@ function renderRoomFiles() {
     // Clear existing files
     filesContent.innerHTML = '';
     
-    // Get current room's files
-    const roomFiles = roomFiles[currentRoom.id] || [];
+    if (!currentRoom) {
+        filesContent.innerHTML = '<p style="color: var(--text-muted); padding: 10px; font-size: 8px;">Select a room to view files</p>';
+        return;
+    }
+    
+    // Get current room's files from both server and local
+    const serverFiles = window.serverFiles && window.serverFiles[currentRoom.id] ? window.serverFiles[currentRoom.id] : [];
     const localFiles = window.localFiles && window.localFiles[currentRoom.id] ? window.localFiles[currentRoom.id] : [];
-    const allFiles = [...roomFiles, ...localFiles];
+    const allFiles = [...serverFiles, ...localFiles];
     
     if (allFiles.length === 0) {
-        filesContent.innerHTML = '<p style="color: #888; padding: 10px;">No files shared yet</p>';
+        filesContent.innerHTML = '<p style="color: var(--text-muted); padding: 10px; font-size: 8px;">No files shared yet</p>';
         return;
     }
     
@@ -1332,10 +1754,12 @@ function renderRoomFiles() {
     allFiles.forEach(file => {
         const fileEl = document.createElement('div');
         fileEl.className = 'file-item';
-        fileEl.style.cssText = 'padding: 8px; margin: 5px 0; background: #2a2a2a; border-radius: 4px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;';
+        fileEl.style.cssText = 'padding: 8px; margin: 5px 0; background: var(--bg-panel); border-radius: 4px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border-dark);';
+        
+        const icon = getFileIcon(file.name || '');
         fileEl.innerHTML = `
-            <span style="flex: 1;">📄 ${file.name || file.originalName || 'Unnamed'}</span>
-            <small style="color: #888;">${file.size ? (file.size / 1024).toFixed(2) + ' KB' : ''}</small>
+            <span style="flex: 1; font-size: 8px;">${icon} ${file.name || file.originalName || 'Unnamed'}</span>
+            <small style="color: var(--text-muted); font-size: 7px;">${file.size ? (file.size / 1024).toFixed(2) + ' KB' : ''}</small>
         `;
         fileEl.onclick = () => handleFileClick(file);
         filesContent.appendChild(fileEl);
@@ -1357,7 +1781,7 @@ function handleFileClick(file) {
         window.open(`${CONFIG.API_BASE}/api/files/${file.id}/download`, '_blank');
     }
     
-    alert(`Opening file: ${file.name || file.originalName}\n\nIn production, this would download or preview the file.`);
+    showNotification(`Opening file: ${file.name || file.originalName}`, 'info');
 }
 
 // Load available rooms
@@ -1499,9 +1923,15 @@ function handleIncomingMessage(msg) {
             console.log('Message updated');
         }
     } else if (msg.type === 'DELETE') {
-        // Remove message
-        messages[currentRoom.id] = messages[currentRoom.id].filter(m => m.id !== msg.id);
-        console.log('Message deleted');
+        // Remove message - ensure id comparison is correct
+        console.log('Deleting message with id:', msg.id, 'Type:', typeof msg.id);
+        const beforeCount = messages[currentRoom.id].length;
+        messages[currentRoom.id] = messages[currentRoom.id].filter(m => {
+            const isSameId = String(m.id) === String(msg.id);
+            console.log(`Message ${m.id} (type: ${typeof m.id}) vs delete id ${msg.id} (type: ${typeof msg.id}): ${isSameId}`);
+            return !isSameId;
+        });
+        console.log(`Message deleted. Before: ${beforeCount}, After: ${messages[currentRoom.id].length}`);
     }
     
     // Re-render messages
@@ -1559,13 +1989,27 @@ function handleTypingIndicator(data) {
 // WebSocket Connection
 function connectWebSocket() {
     const token = localStorage.getItem('token');
+    if (!token) {
+        console.warn('No token available for WebSocket connection');
+        return;
+    }
+    
     const socket = new SockJS(CONFIG.WS_BASE);
     stompClient = Stomp.over(socket);
+    
+    // Disable debug logs
+    stompClient.debug = () => {};
     
     stompClient.connect(
         { Authorization: `Bearer ${token}` },
         (frame) => {
-            console.log('WebSocket connected:', frame);
+            console.log('✓ WebSocket connected');
+            
+            // Subscribe to room and status
+            if (currentRoom && currentRoom.id) {
+                subscribeToRoom(currentRoom.id);
+                subscribeToUserStatus();
+            }
             
             // Send user online status (if backend supports it)
             if (stompClient && stompClient.connected && currentUsername) {
@@ -1645,7 +2089,7 @@ function subscribeToRoom(roomId) {
     // Subscribe to notes
     stompClient.subscribe(`/topic/${roomId}/notes`, (message) => {
         const note = JSON.parse(message.body);
-        console.log('Note received:', note);
+        handleIncomingNote(note);
     });
 }
 
@@ -1665,17 +2109,31 @@ function selectRoom(room) {
         messages[room.id] = [];
     }
     
-    // Show chat and files panels
-    const chatWindow = document.querySelector('.chat-window');
-    const filesPanel = document.querySelector('.files-panel');
-    if (chatWindow) chatWindow.classList.add('active');
-    if (filesPanel) filesPanel.classList.add('active');
-    
-    // Update UI
+    // Update UI - set title
     const roomNameElement = document.querySelector('.chat-titlebar .window-title');
     if (roomNameElement) {
         roomNameElement.textContent = room.name;
     }
+    
+    // Update room list to show active state
+    document.querySelectorAll('.room-item').forEach(item => {
+        item.classList.remove('active');
+        if (item.dataset.roomId === String(room.id) || item.dataset.roomId == room.id) {
+            item.classList.add('active');
+        }
+    });
+    
+    // Show chat and files panels
+    const chatWindow = document.querySelector('.chat-window');
+    const filesPanel = document.querySelector('.files-panel');
+    const filesContent = document.getElementById('filesContent');
+    const messageInputContainer = document.getElementById('messageInputContainer');
+    if (chatWindow) chatWindow.style.display = 'grid';
+    if (filesPanel) filesPanel.style.display = 'flex';
+    if (filesContent) filesContent.style.display = 'block';
+    if (messageInputContainer) messageInputContainer.style.display = 'flex';
+    document.querySelector('.chat-placeholder')?.classList.remove('visible');
+    document.querySelector('.files-placeholder')?.classList.remove('visible');
     
     // Show room controls
     const roomMembersBtn = document.getElementById('roomMembersBtn');
@@ -1692,9 +2150,11 @@ function selectRoom(room) {
     loadMessages(room.id);
     loadRoomMembers(room.id);
     loadRoomFiles(room.id);
+    loadNotes(room.id);
     
     // Render messages for this room
     renderMessages();
+    renderNotes();
     
     // Only subscribe if WebSocket is connected
     if (stompClient && stompClient.connected) {
@@ -1732,8 +2192,10 @@ window.cleanupPage = function() {
     
     currentRoom = null;
     messages = {};
+    notes = {};
     replyToMessage = null;
     editingMessageId = null;
+    editingNoteId = null;
 };
 
 // Handle page unload to set user offline
@@ -1750,9 +2212,204 @@ window.addEventListener('beforeunload', function() {
     }
 });
 
-// Export functions for use by other parts of the app
-window.selectRoom = selectRoom;
-window.toggleReaction = toggleReaction;
+// ============================================
+// NOTE FUNCTIONS
+// ============================================
+
+// Load notes from backend or localStorage
+async function loadNotes(roomId) {
+    // Try to load from backend first
+    if (stompClient && stompClient.connected) {
+        try {
+            const response = await api.getNotes(roomId);
+            if (response.ok) {
+                const notesData = await response.json();
+                notes[roomId] = notesData;
+                // Save to localStorage as backup
+                localStorage.setItem(`notes_${roomId}`, JSON.stringify(notesData));
+                renderNotes();
+                return;
+            }
+        } catch (error) {
+            console.error('Error loading notes from backend:', error);
+        }
+    }
+    
+    // Fall back to localStorage
+    const storedNotes = localStorage.getItem(`notes_${roomId}`);
+    if (storedNotes) {
+        notes[roomId] = JSON.parse(storedNotes);
+    } else {
+        notes[roomId] = [];
+    }
+    renderNotes();
+}
+
+// Render notes for current room
+function renderNotes() {
+    const notesList = document.getElementById('notesList');
+    console.log('renderNotes called, notesList:', notesList);
+    console.log('currentRoom:', currentRoom);
+    console.log('notes:', notes);
+    
+    if (!notesList) {
+        console.error('Notes list element not found');
+        return;
+    }
+
+    notesList.innerHTML = '';
+
+    if (!currentRoom || !notes[currentRoom.id] || notes[currentRoom.id].length === 0) {
+        console.log('No notes for this room');
+        notesList.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 7px; padding: 10px;">No notes yet. Add one to get started!</div>';
+        return;
+    }
+
+    console.log('Rendering', notes[currentRoom.id].length, 'notes');
+    notes[currentRoom.id].forEach(note => {
+        const noteEl = createNoteElement(note);
+        notesList.appendChild(noteEl);
+    });
+}
+
+// Create note DOM element
+function createNoteElement(note) {
+    const noteDiv = document.createElement('div');
+    noteDiv.className = 'note-item';
+    noteDiv.dataset.noteId = note.id;
+
+    const isOwnNote = note.username === currentUsername;
+
+    let html = `<div class="note-text">${escapeHtml(note.content)}</div>`;
+    html += `<div class="note-actions">`;
+
+    if (isOwnNote) {
+        html += `<button onclick="editNote(${note.id})" title="Edit">✎</button>`;
+        html += `<button onclick="deleteNote(${note.id})" title="Delete">✕</button>`;
+    }
+
+    html += `</div>`;
+
+    noteDiv.innerHTML = html;
+    return noteDiv;
+}
+
+// Send note (works with or without backend)
+function sendNote() {
+    const input = document.getElementById('noteInput');
+    const content = input.value.trim();
+
+    console.log('sendNote called, content:', content);
+    console.log('Current room:', currentRoom);
+
+    if (!content || !currentRoom) {
+        console.log('Note is empty or no room selected');
+        return;
+    }
+
+    if (editingNoteId) {
+        // Update existing note
+        console.log('Updating note:', editingNoteId);
+        const noteIdx = notes[currentRoom.id].findIndex(n => n.id === editingNoteId);
+        if (noteIdx !== -1) {
+            notes[currentRoom.id][noteIdx].content = content;
+            console.log('Note updated:', notes[currentRoom.id][noteIdx]);
+            saveNotesToLocalStorage();
+        }
+        editingNoteId = null;
+    } else {
+        // Create new note
+        console.log('Creating new note');
+        const newNote = {
+            id: Date.now(),
+            content: content,
+            username: currentUsername,
+            roomId: currentRoom.id,
+            timestamp: new Date().toISOString(),
+            type: 'POST'
+        };
+
+        if (!notes[currentRoom.id]) {
+            notes[currentRoom.id] = [];
+        }
+
+        notes[currentRoom.id].push(newNote);
+        console.log('Note created:', newNote);
+        console.log('Total notes:', notes[currentRoom.id].length);
+        saveNotesToLocalStorage();
+    }
+
+    input.value = '';
+    renderNotes();
+    console.log('renderNotes called');
+}
+
+// Save notes to localStorage
+function saveNotesToLocalStorage() {
+    if (currentRoom && notes[currentRoom.id]) {
+        localStorage.setItem(`notes_${currentRoom.id}`, JSON.stringify(notes[currentRoom.id]));
+    }
+}
+
+// Edit note
+function editNote(noteId) {
+    const note = notes[currentRoom.id].find(n => n.id === noteId);
+    if (!note) return;
+
+    editingNoteId = noteId;
+    document.getElementById('noteInput').value = note.content;
+    document.getElementById('noteInput').focus();
+}
+
+// Delete note
+function deleteNote(noteId) {
+    if (!confirm('Delete this note?')) return;
+
+    if (!currentRoom) return;
+
+    if (stompClient && stompClient.connected) {
+        stompClient.send(`/app/rooms/${currentRoom.id}/note`, {}, JSON.stringify({
+            id: noteId,
+            type: 'DELETE'
+        }));
+    } else {
+        // Local deletion
+        notes[currentRoom.id] = notes[currentRoom.id].filter(n => n.id !== noteId);
+        saveNotesToLocalStorage();
+    }
+
+    renderNotes();
+}
+
+// Handle incoming note from WebSocket
+function handleIncomingNote(note) {
+    if (!currentRoom || note.roomId != currentRoom.id) return;
+
+    if (!notes[currentRoom.id]) {
+        notes[currentRoom.id] = [];
+    }
+
+    if (note.type === 'POST') {
+        // Add new note
+        notes[currentRoom.id].push(note);
+    } else if (note.type === 'EDIT') {
+        // Update note
+        const idx = notes[currentRoom.id].findIndex(n => n.id === note.id);
+        if (idx !== -1) {
+            notes[currentRoom.id][idx] = note;
+        }
+    } else if (note.type === 'DELETE') {
+        // Remove note
+        notes[currentRoom.id] = notes[currentRoom.id].filter(n => n.id !== note.id);
+    }
+
+    saveNotesToLocalStorage();
+    renderNotes();
+}
+
+// ============================================
+// WINDOW EXPORTS
+// ============================================
 window.replyToMsg = replyToMsg;
 window.editMessage = editMessage;
 window.deleteMessage = deleteMessage;
@@ -1767,3 +2424,16 @@ window.showRoomMembers = showRoomMembers;
 window.inviteUser = inviteUser;
 window.deleteCurrentRoom = deleteCurrentRoom;
 window.loadMessages = loadMessages;
+window.toggleNotificationModal = toggleNotificationModal;
+window.goHome = goHome;
+window.updateTopBar = updateTopBar;
+window.selectRoom = selectRoom;
+window.toggleReaction = toggleReaction;
+window.sendNote = sendNote;
+window.editNote = editNote;
+window.deleteNote = deleteNote;
+window.loadNotes = loadNotes;
+window.renderNotes = renderNotes;
+window.saveNotesToLocalStorage = saveNotesToLocalStorage;
+window.createNoteElement = createNoteElement;
+window.handleIncomingNote = handleIncomingNote;
