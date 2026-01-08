@@ -107,7 +107,7 @@
 .create-room-panel {
     width: 100%;
     max-width: 500px;
-    background-image: url('../resources/images/landing/frames/create_room_frame.png');
+    background-image: url('../../resources/images/landing/frames/create_room_frame.png');
     background-repeat: no-repeat;
     background-size: 100% 100%;
     padding: 20px 20px;
@@ -138,7 +138,7 @@
     border: none;
     outline: none;
     background-color: transparent;
-    background-image: url('../resources/images/landing/inputs/insert_team-name_input-box.png');
+    background-image: url('../../resources/images/landing/inputs/insert_team-name_input-box.png');
     background-repeat: no-repeat;
     background-size: 100% 100%;
     padding: 12px 10px;
@@ -172,14 +172,14 @@
 .dropdown-icon {
     width: 10px;
     height: 10px;
-    background-image: url('../resources/images/landing/icons/dropdown_down.png');
+    background-image: url('../../resources/images/landing/icons/dropdown_down.png');
     background-repeat: no-repeat;
     background-size: contain;
     transition: all 0.2s ease;
 }
 
 .dropdown-icon.open {
-    background-image: url('../resources/images/landing/icons/dropdown_up.png');
+    background-image: url('../../resources/images/landing/icons/dropdown_up.png');
 }
 
 .settings-content {
@@ -209,7 +209,7 @@
 .custom-checkbox {
     width: 16px;
     height: 16px;
-    background-image: url('../resources/images/landing/icons/radio_idle.png');
+    background-image: url('../../resources/images/landing/icons/radio_idle.png');
     background-repeat: no-repeat;
     background-size: contain;
     flex-shrink: 0;
@@ -217,7 +217,7 @@
 }
 
 .checkbox-row input[type="checkbox"]:checked + .custom-checkbox {
-    background-image: url('../resources/images/landing/icons/radio_idle_pressed.png');
+    background-image: url('../../resources/images/landing/icons/radio_idle_pressed.png');
 }
 
 .checkbox-row span {
@@ -231,7 +231,7 @@
     height: 32px;
     padding: 6px 10px;
     background-color: transparent;
-    background-image: url('../resources/images/landing/inputs/max_members_input_box.png');
+    background-image: url('../../resources/images/landing/inputs/max_members_input_box.png');
     background-repeat: no-repeat;
     background-size: 100% 100%;
     border: none;
@@ -257,7 +257,7 @@
     width: 30%;
     height: 30px;
     background-color: transparent;
-    background-image: url('../resources/images/landing/buttons/create-group_button_idle.png');
+    background-image: url('../../resources/images/landing/buttons/create-group_button_idle.png');
     background-repeat: no-repeat;
     background-size: 100% 100%;
     border: none;
@@ -272,11 +272,11 @@
 }
 
 .btn-create:hover {
-    background-image: url('../resources/images/landing/buttons/create-group_button_hover.png');
+    background-image: url('../../resources/images/landing/buttons/create-group_button_hover.png');
 }
 
 .btn-create:active {
-    background-image: url('../resources/images/landing/buttons/create-group_button_pressed.png');
+    background-image: url('../../resources/images/landing/buttons/create-group_button_pressed.png');
     transform: translateY(2px);
 }
 
@@ -288,7 +288,7 @@
     height: auto;
     flex: 1;
     max-width: 500px;
-    background-image: url('../resources/images/landing/frames/find_teams_frame.png');
+    background-image: url('../../resources/images/landing/frames/find_teams_frame.png');
     background-repeat: no-repeat;
     background-size: 100% 100%;
     padding: 20px 20px;
@@ -325,7 +325,7 @@
     border: none;
     outline: none;
     background-color: transparent;
-    background-image: url('../resources/images/landing/inputs/search-bar.png');
+    background-image: url('../../resources/images/landing/inputs/search-bar.png');
     background-repeat: no-repeat;
     background-size: 100% 100%;
     padding: 12px 45px 12px 15px;
@@ -350,7 +350,7 @@
     transform: translateY(-50%);
     width: 20px;
     height: 20px;
-    background-image: url('../resources/images/landing/icons/search_icon.png');
+    background-image: url('../../resources/images/landing/icons/search_icon.png');
     background-repeat: no-repeat;
     background-size: contain;
     pointer-events: none;
@@ -361,7 +361,7 @@
     width: 120px;
     height: 35px;
     background-color: transparent;
-    background-image: url('../resources/images/landing/buttons/create-group_button_idle.png');
+    background-image: url('../../resources/images/landing/buttons/create-group_button_idle.png');
     background-repeat: no-repeat;
     background-size: 100% 100%;
     border: none;
@@ -376,11 +376,11 @@
 }
 
 .btn-search:hover {
-    background-image: url('../resources/images/landing/buttons/create-group_button_hover.png');
+    background-image: url('../../resources/images/landing/buttons/create-group_button_hover.png');
 }
 
 .btn-search:active {
-    background-image: url('../resources/images/landing/buttons/create-group_button_pressed.png');
+    background-image: url('../../resources/images/landing/buttons/create-group_button_pressed.png');
     transform: translateY(2px);
 }
 
@@ -396,7 +396,7 @@
 /* Team Result Item */
 .team-result-item {
     width: 58%;
-    background-image: url('../resources/images/landing/frames/teams_profile_bg.png');
+    background-image: url('../../resources/images/landing/frames/teams_profile_bg.png');
     background-repeat: no-repeat;
     background-size: 100% 100%;
     padding: 15px 20px;
@@ -447,7 +447,7 @@
 /* Your Rooms Panel */
 .your-rooms-panel {
     width: 40%;
-    background-image: url('../resources/images/landing/frames/invite_frame1.1.png');
+    background-image: url('../../resources/images/landing/frames/invite_frame1.1.png');
     background-repeat: no-repeat;
     background-size: 100% 100%;
     padding: 20px 20px;
@@ -458,7 +458,7 @@
 /* Team Members Panel */
 .team-members-panel {
     width: 60%;
-    background-image: url('../resources/images/landing/frames/invite_frame1.2.png');
+    background-image: url('../../resources/images/landing/frames/invite_frame1.2.png');
     background-repeat: no-repeat;
     background-size: 100% 100%;
     padding: 20px 20px;
@@ -480,7 +480,7 @@
 .room-item {
     width: 100%;
     height: 100%;
-    background-image: url('../resources/images/landing/frames/teams_profile_bg.png');
+    background-image: url('../../resources/images/landing/frames/teams_profile_bg.png');
     background-repeat: no-repeat;
     background-size: 100% 100%;
     padding: 15px 60px;
@@ -500,7 +500,7 @@
 
 /* Unoccupied Room Item */
 .room-item-unoccupied {
-    background-image: url('../resources/images/landing/frames/teams_profile_unoccupied_bg.png');
+    background-image: url('../../resources/images/landing/frames/teams_profile_unoccupied_bg.png');
 }
 
 /* Team Members Search */
@@ -515,7 +515,7 @@
     border: none;
     outline: none;
     background-color: transparent;
-    background-image: url('../resources/images/landing/inputs/search-bar.png');
+    background-image: url('../../resources/images/landing/inputs/search-bar.png');
     background-repeat: no-repeat;
     background-size: 100% 100%;
     padding: 12px 45px 12px 15px;
@@ -539,7 +539,7 @@
     transform: translateY(-50%);
     width: 20px;
     height: 20px;
-    background-image: url('../resources/images/landing/icons/search_icon.png');
+    background-image: url('../../resources/images/landing/icons/search_icon.png');
     background-repeat: no-repeat;
     background-size: contain;
     pointer-events: none;
@@ -558,7 +558,7 @@
 /* Member Item */
 .member-item {
     width: 100%;
-    background-image: url('../resources/images/landing/frames/user_profile_bg.png');
+    background-image: url('../../resources/images/landing/frames/user_profile_bg.png');
     background-repeat: no-repeat;
     background-size: 100% 100%;
     padding: 15px 55px;
@@ -604,7 +604,7 @@
 
 .add-member-panel {
     width: 100%;
-    background-image: url('../resources/images/landing/frames/invite_frame2.png');
+    background-image: url('../../resources/images/landing/frames/invite_frame2.png');
     background-repeat: no-repeat;
     background-size: 100% 100%;
     padding: 20px 20px;
@@ -631,7 +631,7 @@
     width: 100%;
     height: 45px;
     background-color: transparent;
-    background-image: url('../resources/images/landing/inputs/insert_team-name_input-box.png');
+    background-image: url('../../resources/images/landing/inputs/insert_team-name_input-box.png');
     background-repeat: no-repeat;
     background-size: 100% 100%;
     padding: 12px 40px 12px 15px;
@@ -652,7 +652,7 @@
 .dropdown-arrow {
     width: 12px;
     height: 12px;
-    background-image: url('../resources/images/landing/icons/dropdown_down.png');
+    background-image: url('../../resources/images/landing/icons/dropdown_down.png');
     background-repeat: no-repeat;
     background-size: contain;
     position: absolute;
@@ -663,7 +663,7 @@
 }
 
 .dropdown-arrow.open {
-    background-image: url('../resources/images/landing/icons/dropdown_up.png');
+    background-image: url('../../resources/images/landing/icons/dropdown_up.png');
 }
 
 .dropdown-options {
@@ -708,7 +708,7 @@
     border: none;
     outline: none;
     background-color: transparent;
-    background-image: url('../resources/images/landing/inputs/insert_user_input_box.png');
+    background-image: url('../../resources/images/landing/inputs/insert_user_input_box.png');
     background-repeat: no-repeat;
     background-size: 100% 100%;
     padding: 12px 15px;
@@ -732,7 +732,7 @@
     margin: 0 auto;
     display: block;
     background-color: transparent;
-    background-image: url('../resources/images/landing/buttons/invite_button_idle.png');
+    background-image: url('../../resources/images/landing/buttons/invite_button_idle.png');
     background-repeat: no-repeat;
     background-size: 100% 100%;
     border: none;
@@ -746,11 +746,11 @@
 }
 
 .btn-add-member:hover {
-    background-image: url('../resources/images/landing/buttons/invite_button_hover.png');
+    background-image: url('../../resources/images/landing/buttons/invite_button_hover.png');
 }
 
 .btn-add-member:active {
-    background-image: url('../resources/images/landing/buttons/invite_button_pressed.png');
+    background-image: url('../../resources/images/landing/buttons/invite_button_pressed.png');
     transform: translateY(2px);
 }
 

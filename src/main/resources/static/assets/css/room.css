@@ -1011,3 +1011,160 @@ body {
     color: var(--text-muted);
     font-size: 7px;
 }
+
+/* Add these to your existing room.css */
+
+/* File Upload Button */
+#fileBtn {
+    width: 40px;
+    height: 26px;
+    border: 2px solid var(--border-dark);
+    background: var(--bg-panel);
+    font-size: 14px;
+    cursor: pointer;
+    color: var(--text-main);
+    transition: background 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#fileBtn:hover {
+    background: var(--highlight);
+}
+
+/* Files List in Modal */
+.files-list-modal {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 10px;
+    padding: 15px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.file-item {
+    padding: 15px;
+    background: var(--bg-window);
+    border: 2px solid var(--border-dark);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    transition: all 0.2s;
+    cursor: pointer;
+    border-radius: 3px;
+}
+
+.file-item:hover {
+    background: var(--highlight);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Notes Modal Styles */
+.notes-modal .modal-content {
+    max-width: 600px;
+    max-height: 80vh;
+}
+
+.notes-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 15px;
+    max-height: 400px;
+}
+
+.notes-input-area {
+    padding: 15px;
+    border-top: 2px solid var(--border-dark);
+    display: flex;
+    gap: 10px;
+}
+
+.notes-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 2px solid var(--border-dark);
+    background: white;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 8px;
+    color: var(--text-main);
+}
+
+.add-note-btn {
+    padding: 8px 16px;
+    background: var(--highlight);
+    border: 2px solid var(--border-dark);
+    font-family: 'Press Start 2P', cursive;
+    font-size: 8px;
+    cursor: pointer;
+    color: var(--text-main);
+    transition: background 0.2s;
+}
+
+.add-note-btn:hover {
+    background: var(--border-dark);
+    color: white;
+}
+
+/* Markdown Rendering */
+.message-content code {
+    background: var(--bg-panel);
+    padding: 2px 4px;
+    border-radius: 2px;
+    font-family: 'Courier New', monospace;
+    font-size: 7px;
+}
+
+.message-content strong {
+    font-weight: bold;
+}
+
+.message-content em {
+    font-style: italic;
+}
+
+.message-content a {
+    color: var(--text-main);
+    text-decoration: underline;
+}
+
+.message-content a:hover {
+    color: var(--highlight);
+}
+
+/* Files Panel Improvements */
+.files-content {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    padding: 15px;
+    max-height: calc(100% - 40px);
+    overflow-y: auto;
+}
+
+/* Scrollbar for notes and files */
+.notes-list::-webkit-scrollbar,
+.files-list-modal::-webkit-scrollbar {
+    width: 8px;
+}
+
+.notes-list::-webkit-scrollbar-track,
+.files-list-modal::-webkit-scrollbar-track {
+    background: var(--bg-panel);
+    border: 2px solid var(--border-dark);
+}
+
+.notes-list::-webkit-scrollbar-thumb,
+.files-list-modal::-webkit-scrollbar-thumb {
+    background: var(--highlight);
+    border: 2px solid var(--border-dark);
+}
+
+/* File item in main panel */
+.files-panel .file-item {
+    aspect-ratio: 1;
+    min-height: 80px;
+}

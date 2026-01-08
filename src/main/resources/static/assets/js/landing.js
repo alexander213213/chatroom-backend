@@ -1,6 +1,12 @@
 const API_BASE = window.location.origin;
 let userRooms = [];
 
+function init() {
+    displayUsername();
+    loadUserRooms();
+    setupEventListeners();
+}
+
 function displayUsername() {
     const username = window.getCurrentUser();
     document.querySelectorAll('.username').forEach(el => {
@@ -28,6 +34,7 @@ async function loadUserRooms() {
 
 function displayRooms() {
     const roomsList = document.getElementById('roomsList');
+    if (!roomsList) return;
     
     if (userRooms.length === 0) {
         roomsList.innerHTML = '<div style="padding: 20px; text-align: center; color: #66506D; font-size: 12px;">No rooms yet. Create one!</div>';
@@ -36,13 +43,14 @@ function displayRooms() {
     
     roomsList.innerHTML = userRooms.map(room => `
         <div class="room-item" onclick="enterRoom(${room.id})">
-            <div class="room-item-name">${room.name}</div>
+            <div class="room-item-name">${escapeHtml(room.name)}</div>
         </div>
     `).join('');
 }
 
 function populateRoomDropdown() {
     const dropdown = document.getElementById('dropdownOptions');
+    if (!dropdown) return;
     
     if (userRooms.length === 0) {
         dropdown.innerHTML = '<div class="dropdown-option" style="opacity: 0.5;">No rooms available</div>';
@@ -50,7 +58,7 @@ function populateRoomDropdown() {
     }
     
     dropdown.innerHTML = userRooms.map(room => `
-        <div class="dropdown-option" data-room-id="${room.id}">${room.name}</div>
+        <div class="dropdown-option" data-room-id="${room.id}">${escapeHtml(room.name)}</div>
     `).join('');
     
     dropdown.querySelectorAll('.dropdown-option').forEach(option => {
@@ -64,10 +72,14 @@ function selectRoom(option) {
     const roomId = option.dataset.roomId;
     const roomName = option.textContent;
     
-    document.getElementById('dropdownSelected').querySelector('.dropdown-text').textContent = roomName;
+    const selectedText = document.getElementById('dropdownSelected').querySelector('.dropdown-text');
+    if (selectedText) selectedText.textContent = roomName;
+    
     document.getElementById('dropdownSelected').dataset.selectedRoom = roomId;
     document.getElementById('dropdownOptions').classList.remove('show');
-    document.getElementById('dropdownArrow').classList.remove('open');
+    
+    const arrow = document.getElementById('dropdownArrow');
+    if (arrow) arrow.classList.remove('open');
 }
 
 async function createRoom() {
@@ -93,10 +105,18 @@ async function createRoom() {
         if (response.ok) {
             showModal('Room created successfully!');
             document.getElementById('roomNameInput').value = '';
-            document.getElementById('maxMembersCheck').checked = false;
-            document.getElementById('adminOnlyCheck').checked = false;
-            document.getElementById('maxMembersInput').disabled = true;
-            document.getElementById('maxMembersInput').value = '';
+            
+            const maxMembersCheck = document.getElementById('maxMembersCheck');
+            const adminOnlyCheck = document.getElementById('adminOnlyCheck');
+            const maxMembersInput = document.getElementById('maxMembersInput');
+            
+            if (maxMembersCheck) maxMembersCheck.checked = false;
+            if (adminOnlyCheck) adminOnlyCheck.checked = false;
+            if (maxMembersInput) {
+                maxMembersInput.disabled = true;
+                maxMembersInput.value = '';
+            }
+            
             await loadUserRooms();
         } else {
             showModal('Failed to create room');
@@ -161,6 +181,8 @@ async function joinRoom(roomId) {
             await loadUserRooms();
             document.getElementById('roomIdInput').value = '';
             document.getElementById('roomSearchResult').innerHTML = '';
+        } else {
+            showModal('Failed to join room');
         }
     } catch (err) {
         console.error('Join room error:', err);
@@ -214,61 +236,74 @@ function enterRoom(roomId) {
 function showModal(message) {
     const modal = document.getElementById('confirmModal');
     const messageEl = document.getElementById('modalMessage');
-    messageEl.textContent = message;
-    modal.style.display = 'flex';
+    if (modal && messageEl) {
+        messageEl.textContent = message;
+        modal.style.display = 'flex';
+    }
 }
 
-function initializeUI() {
+function setupEventListeners() {
     const advancedToggle = document.getElementById('advancedToggle');
     const settingsContent = document.getElementById('settingsContent');
     const dropdownIcon = document.getElementById('dropdownIcon');
     
-    advancedToggle.addEventListener('click', () => {
-        const isOpen = settingsContent.classList.contains('open');
-        if (isOpen) {
-            settingsContent.classList.remove('open');
-            settingsContent.style.display = 'none';
-            dropdownIcon.classList.remove('open');
-        } else {
-            settingsContent.classList.add('open');
-            settingsContent.style.display = 'block';
-            dropdownIcon.classList.add('open');
-        }
-    });
+    if (advancedToggle && settingsContent && dropdownIcon) {
+        advancedToggle.addEventListener('click', () => {
+            const isOpen = settingsContent.style.display === 'block';
+            settingsContent.style.display = isOpen ? 'none' : 'block';
+            dropdownIcon.classList.toggle('open');
+        });
+    }
     
-    document.getElementById('maxMembersCheck').addEventListener('change', (e) => {
-        document.getElementById('maxMembersInput').disabled = !e.target.checked;
-    });
+    const maxMembersCheck = document.getElementById('maxMembersCheck');
+    const maxMembersInput = document.getElementById('maxMembersInput');
+    if (maxMembersCheck && maxMembersInput) {
+        maxMembersCheck.addEventListener('change', (e) => {
+            maxMembersInput.disabled = !e.target.checked;
+        });
+    }
     
     const dropdownSelected = document.getElementById('dropdownSelected');
     const dropdownOptions = document.getElementById('dropdownOptions');
     const dropdownArrow = document.getElementById('dropdownArrow');
     
-    dropdownSelected.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const isOpen = dropdownOptions.classList.contains('show');
-        if (isOpen) {
-            dropdownOptions.classList.remove('show');
-            dropdownArrow.classList.remove('open');
-        } else {
-            dropdownOptions.classList.add('show');
-            dropdownArrow.classList.add('open');
-        }
-    });
+    if (dropdownSelected && dropdownOptions && dropdownArrow) {
+        dropdownSelected.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = dropdownOptions.classList.contains('show');
+            if (isOpen) {
+                dropdownOptions.classList.remove('show');
+                dropdownArrow.classList.remove('open');
+            } else {
+                dropdownOptions.classList.add('show');
+                dropdownArrow.classList.add('open');
+            }
+        });
+    }
     
     document.addEventListener('click', (e) => {
-        if (!e.target.closest('#roomDropdown')) {
+        if (!e.target.closest('#roomDropdown') && dropdownOptions) {
             dropdownOptions.classList.remove('show');
-            dropdownArrow.classList.remove('open');
+            if (dropdownArrow) dropdownArrow.classList.remove('open');
         }
     });
     
-    document.getElementById('createRoomBtn').addEventListener('click', createRoom);
-    document.getElementById('searchRoomBtn').addEventListener('click', searchRoom);
-    document.getElementById('addMemberBtn').addEventListener('click', addMemberToRoom);
-    document.getElementById('modalOkBtn').addEventListener('click', () => {
-        document.getElementById('confirmModal').style.display = 'none';
-    });
+    const createRoomBtn = document.getElementById('createRoomBtn');
+    if (createRoomBtn) createRoomBtn.addEventListener('click', createRoom);
+    
+    const searchRoomBtn = document.getElementById('searchRoomBtn');
+    if (searchRoomBtn) searchRoomBtn.addEventListener('click', searchRoom);
+    
+    const addMemberBtn = document.getElementById('addMemberBtn');
+    if (addMemberBtn) addMemberBtn.addEventListener('click', addMemberToRoom);
+    
+    const modalOkBtn = document.getElementById('modalOkBtn');
+    if (modalOkBtn) {
+        modalOkBtn.addEventListener('click', () => {
+            const modal = document.getElementById('confirmModal');
+            if (modal) modal.style.display = 'none';
+        });
+    }
     
     const homeBtn = document.querySelector('.icon-btn[title="Home"]');
     if (homeBtn) {
@@ -281,12 +316,17 @@ function initializeUI() {
     }
 }
 
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 window.enterRoom = enterRoom;
 window.joinRoom = joinRoom;
 
-displayUsername();
-loadUserRooms();
-initializeUI();
+init();
 
 window.cleanupPage = function() {
     console.log('Landing page cleanup');

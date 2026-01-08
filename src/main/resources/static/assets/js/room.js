@@ -3,8 +3,16 @@ let currentRoomId = null;
 let currentRoomName = '';
 let messages = [];
 let notes = [];
+let files = [];
 let replyToMessage = null;
 let typingTimeout = null;
+
+const emojis = ['👍', '❤️', '😂', '😮', '😢', '🎉', '🔥', '👏'];
+
+function init() {
+    displayUsername();
+    initializeRoom();
+}
 
 function displayUsername() {
     const username = window.getCurrentUser();
@@ -50,7 +58,8 @@ async function loadRoomData() {
         await Promise.all([
             loadMessages(),
             loadRoomMembers(),
-            loadNotes()
+            loadNotes(),
+            loadFiles()
         ]);
     } catch (err) {
         console.error('Failed to load room data:', err);
@@ -58,13 +67,13 @@ async function loadRoomData() {
 }
 
 function displayRoomsList(rooms) {
-    const roomsContent = document.querySelector('.rooms-content');
+    const roomsContent = document.getElementById('roomsContent');
     if (!roomsContent) return;
     
     roomsContent.innerHTML = rooms.map(room => `
         <div class="room-item ${room.id == currentRoomId ? 'active' : ''}" data-room-id="${room.id}">
             <span class="room-icon">💼</span>
-            <span>${room.name}</span>
+            <span>${escapeHtml(room.name)}</span>
         </div>
     `).join('');
     
@@ -86,6 +95,7 @@ async function switchRoom(roomId) {
     
     messages = [];
     notes = [];
+    files = [];
     
     await loadRoomData();
     setupWebSocket();
@@ -142,6 +152,33 @@ async function loadNotes() {
     }
 }
 
+async function loadFiles() {
+    try {
+        const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
+        const response = await fetch(`${API_BASE}/api/files/rooms/${currentRoomId}/attachments`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+            credentials: 'include'
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            files = data.attachments || [];
+            displayFiles();
+        }
+    } catch (err) {
+        console.error('Failed to load files:', err);
+    }
+}
+
+function renderMarkdown(text) {
+    return text
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank">$1</a>')
+        .replace(/`(.+?)`/g, '<code>$1</code>')
+        .replace(/\n/g, '<br>');
+}
+
 function displayMessages() {
     const container = document.getElementById('messagesContainer');
     if (!container) return;
@@ -178,7 +215,7 @@ function displayMessages() {
                     <span class="message-timestamp">${formatTime(msg.timestamp)}</span>
                 </div>
                 ${replyHtml}
-                <div class="message-content">${escapeHtml(msg.content)}</div>
+                <div class="message-content">${renderMarkdown(escapeHtml(msg.content))}</div>
                 ${reactionsHtml}
                 <div class="message-actions">
                     <span class="reply-btn" onclick="setReplyTo(${msg.id}, '${escapeHtml(msg.username)}', '${escapeHtml(msg.content).replace(/'/g, "\\'")}')">↩️</span>
@@ -226,16 +263,68 @@ function displayNotes() {
     if (!notesList) return;
     
     if (notes.length === 0) {
-        notesList.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 8px;">No notes yet</div>';
+        notesList.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 8px;">No notes yet</div>';
         return;
     }
     
     notesList.innerHTML = notes.map(note => `
-        <div class="note-item" style="background: white; border: 2px solid var(--border-dark); padding: 10px; margin-bottom: 10px;">
-            <div style="font-size: 7px; color: var(--text-muted); margin-bottom: 5px;">${escapeHtml(note.username)}</div>
-            <div style="font-size: 8px;">${escapeHtml(note.content)}</div>
+        <div class="note-item" style="background: white; border: 2px solid var(--border-dark); padding: 10px; margin-bottom: 10px; border-radius: 3px;">
+            <div style="font-size: 7px; color: var(--text-muted); margin-bottom: 5px; font-weight: bold;">${escapeHtml(note.username)}</div>
+            <div style="font-size: 8px; line-height: 1.4;">${renderMarkdown(escapeHtml(note.content))}</div>
         </div>
     `).join('');
+}
+
+function displayFiles() {
+    const filesContent = document.getElementById('filesContent');
+    const filesListModal = document.getElementById('filesListModal');
+    
+    if (files.length === 0) {
+        const emptyMsg = '<div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 8px;">No files uploaded yet</div>';
+        if (filesContent) filesContent.innerHTML = emptyMsg;
+        if (filesListModal) filesListModal.innerHTML = emptyMsg;
+        return;
+    }
+    
+    const filesHtml = files.map(file => {
+        const icon = file.isImage ? '🖼️' : '📄';
+        const sizeKB = (file.size / 1024).toFixed(1);
+        return `
+            <div class="file-item" onclick="downloadFile('${file.filename}')" style="cursor: pointer;">
+                <div style="font-size: 32px;">${icon}</div>
+                <div style="font-size: 7px; margin-top: 5px; word-break: break-all;">${escapeHtml(file.originalFilename)}</div>
+                <div style="font-size: 6px; color: var(--text-muted);">${sizeKB} KB</div>
+            </div>
+        `;
+    }).join('');
+    
+    if (filesContent) filesContent.innerHTML = filesHtml;
+    if (filesListModal) filesListModal.innerHTML = filesHtml;
+}
+
+async function downloadFile(filename) {
+    try {
+        const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
+        const response = await fetch(`${API_BASE}/api/files/rooms/${currentRoomId}/attachments/${filename}`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+            credentials: 'include'
+        });
+        
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        }
+    } catch (err) {
+        console.error('Failed to download file:', err);
+        alert('Failed to download file');
+    }
 }
 
 function setupWebSocket() {
@@ -274,7 +363,7 @@ function handleIncomingMessage(msg) {
     } else if (msg.type === 'UPDATE') {
         const index = messages.findIndex(m => m.id === msg.id);
         if (index !== -1) {
-            messages[index] = msg;
+            messages[index] = { ...messages[index], ...msg };
         }
     } else {
         messages.push(msg);
@@ -390,10 +479,8 @@ function showEmojiPicker(messageId, event) {
     const picker = document.getElementById('emojiPicker');
     if (!picker) return;
     
-    const emojis = ['👍', '❤️', '😂', '😮', '😢', '🎉', '🔥', '👏'];
-    
     document.getElementById('emojiGrid').innerHTML = emojis.map(emoji => 
-        `<button class="emoji-item" onclick="reactToMessage(${messageId}, '${emoji}')">${emoji}</button>`
+        `<button class="emoji-item" onclick="reactToMessage(${messageId}, '${emoji}')" style="cursor: pointer; padding: 8px; border: none; background: none; font-size: 20px;">${emoji}</button>`
     ).join('');
     
     if (event) {
@@ -464,6 +551,41 @@ function addNote() {
     input.value = '';
 }
 
+async function uploadFile() {
+    const input = document.getElementById('fileInput');
+    const file = input.files[0];
+    if (!file) return;
+    
+    if (file.size > 200 * 1024 * 1024) {
+        alert('File too large. Maximum size is 200MB');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+        const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
+        const response = await fetch(`${API_BASE}/api/files/rooms/${currentRoomId}/attachments`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+            credentials: 'include',
+            body: formData
+        });
+        
+        if (response.ok) {
+            input.value = '';
+            await loadFiles();
+            alert('File uploaded successfully');
+        } else {
+            alert('Failed to upload file');
+        }
+    } catch (err) {
+        console.error('File upload error:', err);
+        alert('Failed to upload file');
+    }
+}
+
 function openModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
@@ -483,6 +605,8 @@ function closeModal(modalId) {
 function showChatWindow() {
     const chatPlaceholder = document.querySelector('.chat-placeholder');
     const chatWindow = document.querySelector('.chat-window');
+    const filesPlaceholder = document.querySelector('.files-placeholder');
+    const filesPanel = document.querySelector('.files-panel');
     const messageInputContainer = document.getElementById('messageInputContainer');
     
     if (chatPlaceholder) chatPlaceholder.style.display = 'none';
@@ -490,6 +614,8 @@ function showChatWindow() {
         chatWindow.style.display = 'grid';
         chatWindow.classList.add('active');
     }
+    if (filesPlaceholder) filesPlaceholder.style.display = 'none';
+    if (filesPanel) filesPanel.style.display = 'flex';
     if (messageInputContainer) messageInputContainer.style.display = 'flex';
 }
 
@@ -498,9 +624,11 @@ function setupEventListeners() {
     const messageInput = document.getElementById('messageInput');
     const cancelReply = document.getElementById('cancelReply');
     const notesBtn = document.getElementById('notesBtn');
+    const filesViewBtn = document.getElementById('filesViewBtn');
     const addNoteBtn = document.getElementById('addNoteBtn');
+    const fileBtn = document.getElementById('fileBtn');
+    const fileInput = document.getElementById('fileInput');
     const homeBtn = document.getElementById('homeBtn');
-    const viewProfileBtn = document.getElementById('viewProfileBtn');
     
     if (sendBtn) sendBtn.addEventListener('click', sendMessage);
     
@@ -531,9 +659,11 @@ function setupEventListeners() {
     
     if (cancelReply) cancelReply.addEventListener('click', clearReply);
     if (notesBtn) notesBtn.addEventListener('click', () => openModal('notesModal'));
+    if (filesViewBtn) filesViewBtn.addEventListener('click', () => openModal('filesViewModal'));
     if (addNoteBtn) addNoteBtn.addEventListener('click', addNote);
+    if (fileBtn) fileBtn.addEventListener('click', () => fileInput.click());
+    if (fileInput) fileInput.addEventListener('change', uploadFile);
     if (homeBtn) homeBtn.addEventListener('click', () => window.navigateTo('landing'));
-    if (viewProfileBtn) viewProfileBtn.addEventListener('click', () => alert('Profile feature coming soon!'));
     
     document.querySelectorAll('.window-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -552,13 +682,6 @@ function setupEventListeners() {
                 if (roomsPanel) roomsPanel.classList.toggle('minimized');
             }
         });
-    });
-    
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('.emoji-picker') && !e.target.closest('.reaction-btn')) {
-            const picker = document.getElementById('emojiPicker');
-            if (picker) picker.style.display = 'none';
-        }
     });
 }
 
@@ -580,9 +703,9 @@ window.showEmojiPicker = showEmojiPicker;
 window.reactToMessage = reactToMessage;
 window.toggleReaction = toggleReaction;
 window.closeModal = closeModal;
+window.downloadFile = downloadFile;
 
-displayUsername();
-initializeRoom();
+init();
 
 window.cleanupPage = function() {
     if (window.currentRoomSubscription) {
@@ -594,5 +717,4 @@ window.cleanupPage = function() {
         window.reactionSubscription = null;
     }
     clearTimeout(typingTimeout);
-    console.log('Room page cleanup');
 };

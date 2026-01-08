@@ -1,156 +1,133 @@
-
 <body class="pixel-ui">
-
     <!-- Top Bar -->
     <header class="top-bar">
-    <div class="profile-header">
-      <div class="avatar">👨‍💻</div>
-      <div class="profile-name">
-        <div class="username" id="currentUserDisplay">Loading...</div>
-        <div class="view-profile" id="viewProfileBtn">View Profile ▼</div>
-      </div>
-    </div>
-    <div class="top-icons">
-      <button class="icon-btn" title="Notifications">🔔</button>
-      <button class="icon-btn" id="homeBtn" title="Home">🏠</button>
-    </div>
+        <div class="profile-header">
+            <div class="avatar">👨‍💻</div>
+            <div class="profile-name">
+                <div class="username" id="currentUserDisplay">Loading...</div>
+                <div class="view-profile" id="viewProfileBtn">View Profile ▼</div>
+            </div>
+        </div>
+        <div class="top-icons">
+            <button class="icon-btn" title="Notifications">🔔</button>
+            <button class="icon-btn" id="homeBtn" title="Home">🏠</button>
+        </div>
     </header>
 
     <!-- Main Workspace -->
     <main class="workspace">
-
-    <!-- Placeholder for Chat (shown when closed) -->
-    <div class="placeholder-box chat-placeholder">
-        <div>Chat Window Closed<br>Select a room to start chatting</div>
-    </div>
-
-    <!-- Chat Window with Sidebar -->
-    <section class="chat-window window">
-        <!-- Chat Main Area -->
-        <div class="chat-main">
-        <div class="chat-titlebar">
-            <div class="window-title" id="chatRoomTitle">Select a room</div>
-            <div class="window-controls">
-            <div class="window-btn" data-action="minimize-chat">−</div>
-            <div class="window-btn" data-action="close-chat">✕</div>
-            </div>
+        <!-- Placeholder for Chat -->
+        <div class="placeholder-box chat-placeholder">
+            <div>Chat Window Closed<br>Select a room to start chatting</div>
         </div>
 
-        <div class="messages" id="messagesContainer">
-            <div style="text-align: center; padding: 40px; color: var(--text-muted); font-size: 8px;">
-            No messages yet. Start the conversation!
-            </div>
-        </div>
+        <!-- Chat Window -->
+        <section class="chat-window window">
+            <div class="chat-main">
+                <div class="chat-titlebar">
+                    <div class="window-title" id="chatRoomTitle">Select a room</div>
+                    <div class="window-controls">
+                        <div class="window-btn" data-action="minimize-chat">−</div>
+                        <div class="window-btn" data-action="close-chat">✕</div>
+                    </div>
+                </div>
 
-        <div class="chat-input" id="messageInputContainer" style="display: none;">
-            <div id="replyPreview" class="reply-preview">
-            <div class="reply-preview-header">
-                <span id="replyText"></span>
-                <button id="cancelReply" class="reply-preview-close">✕</button>
-            </div>
-            </div>
-            <div id="typingIndicator" class="typing-indicator"></div>
-            <input type="file" id="fileInput" class="file-input-hidden" />
-            <button id="fileBtn">📎</button>
-            <input id="messageInput" type="text" placeholder="Type message..." />
-            <button id="notesBtn" class="chat-icon-btn" title="Notes">📝</button>
-            <button id="sendBtn">➤</button>
-        </div>
+                <div class="messages" id="messagesContainer">
+                    <div style="text-align: center; padding: 40px; color: var(--text-muted); font-size: 8px;">
+                        No messages yet. Start the conversation!
+                    </div>
+                </div>
 
-        <!-- Emoji Picker -->
-        <div id="emojiPicker" class="emoji-picker">
-            <div id="emojiGrid" class="emoji-grid"></div>
-        </div>
-        </div>
+                <div class="chat-input" id="messageInputContainer" style="display: none;">
+                    <div id="replyPreview" class="reply-preview">
+                        <div class="reply-preview-header">
+                            <span id="replyText"></span>
+                            <button id="cancelReply" class="reply-preview-close">✕</button>
+                        </div>
+                    </div>
+                    <div id="typingIndicator" class="typing-indicator"></div>
+                    <input type="file" id="fileInput" class="file-input-hidden" />
+                    <button id="fileBtn">📎</button>
+                    <input id="messageInput" type="text" placeholder="Type message..." />
+                    <button id="notesBtn" class="chat-icon-btn" title="Notes">📝</button>
+                    <button id="filesViewBtn" class="chat-icon-btn" title="Files">📁</button>
+                    <button id="sendBtn">➤</button>
+                </div>
 
-        <!-- Team Info Sidebar -->
-        <div class="chat-sidebar">
-        <div class="members-panel">
-            <div class="members-content">
-            <div class="panel-section">
-                <div class="section-title">Status</div>
-                <div class="status-indicator">
-                <div class="status-dot offline"></div>
-                <span>Offline</span>
+                <!-- Emoji Picker -->
+                <div id="emojiPicker" class="emoji-picker">
+                    <div id="emojiGrid" class="emoji-grid"></div>
                 </div>
             </div>
 
-            <div class="panel-section">
-                <div class="section-title">Team Members</div>
-                <ul class="member-list" id="membersList">
-                <li class="member-list-item">
-                    Loading members...
-                </li>
-                </ul>
+            <!-- Team Info Sidebar -->
+            <div class="chat-sidebar">
+                <div class="members-panel">
+                    <div class="members-content">
+                        <div class="panel-section">
+                            <div class="section-title">Status</div>
+                            <div class="status-indicator">
+                                <div class="status-dot offline"></div>
+                                <span>Offline</span>
+                            </div>
+                        </div>
+
+                        <div class="panel-section">
+                            <div class="section-title">Team Members</div>
+                            <ul class="member-list" id="membersList">
+                                <li class="member-list-item">Loading members...</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
             </div>
+        </section>
+
+        <!-- Placeholder for Files -->
+        <div class="placeholder-box files-placeholder">
+            <div>Meeting Files<br>Open a chat to view files</div>
+        </div>
+
+        <!-- Files Panel -->
+        <aside class="files-panel window">
+            <div class="window-titlebar">
+                <div class="window-title">Meeting Files</div>
+                <div class="window-controls">
+                    <div class="window-btn" data-action="minimize-files">−</div>
+                </div>
             </div>
-        </div>
-        </div>
-    </section>
+            <div class="files-content" id="filesContent">
+                <div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 8px;">
+                    No files uploaded yet
+                </div>
+            </div>
+        </aside>
 
-    <!-- Placeholder for Meeting Files (shown when closed) -->
-    <div class="placeholder-box files-placeholder">
-        <div>Meeting Files<br>Open a chat to view files</div>
-    </div>
-
-    <!-- Files Panel -->
-    <aside class="files-panel window">
-        <div class="window-titlebar">
-        <div class="window-title">Meeting Files</div>
-        <div class="window-controls">
-            <div class="window-btn" data-action="minimize-files">−</div>
-        </div>
-        </div>
-
-        <div class="files-content" id="filesContent" style="display: none;">
-        <div class="file-item">📄</div>
-        <div class="file-item">📄</div>
-        <div class="file-item">📊</div>
-        <div class="file-item">📷</div>
-        <div class="file-item">📁</div>
-        <div class="file-item">📋</div>
-        </div>
-    </aside>
-
-    <!-- Rooms Panel -->
-    <aside class="rooms-panel window">
-        <div class="window-titlebar">
-        <div class="window-title">Rooms</div>
-        <div class="window-controls">
-            <div class="window-btn" data-action="minimize-rooms">−</div>
-        </div>
-        </div>
-
-        <div class="rooms-content">
-        <div class="room-item" data-room-id="work-projects">
-            <span class="room-icon">💼</span>
-            <span>Work Projects</span>
-        </div>
-        <div class="room-item" data-room-id="gaming-squad">
-            <span class="room-icon">🎮</span>
-            <span>Gaming Squad</span>
-        </div>
-        <div class="room-item" data-room-id="study-group">
-            <span class="room-icon">📚</span>
-            <span>Study Group</span>
-        </div>
-        <div class="room-item" data-room-id="family-chat">
-            <span class="room-icon">🏠</span>
-            <span>Family Chat</span>
-        </div>
-        </div>
-    </aside>
+        <!-- Rooms Panel -->
+        <aside class="rooms-panel window">
+            <div class="window-titlebar">
+                <div class="window-title">Rooms</div>
+                <div class="window-controls">
+                    <div class="window-btn" data-action="minimize-rooms">−</div>
+                </div>
+            </div>
+            <div class="rooms-content" id="roomsContent">
+                <div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 8px;">
+                    Loading rooms...
+                </div>
+            </div>
+        </aside>
     </main>
 
-    <!-- Notes Popup Modal -->
+    <!-- Notes Modal -->
     <div id="notesModal" class="modal-overlay notes-modal">
         <div class="modal-content notes-content">
             <div class="modal-header">
                 <h3 class="modal-title">Room Notes</h3>
                 <button onclick="closeModal('notesModal')" class="modal-close-btn">✕</button>
             </div>
-            <div class="notes-list">
-                <div id="notesList"></div>
+            <div class="notes-list" id="notesList">
+                <div style="text-align: center; padding: 20px; color: var(--text-muted);">No notes yet</div>
             </div>
             <div class="notes-input-area">
                 <input type="text" id="noteInput" placeholder="Add a note..." class="notes-input">
@@ -159,55 +136,16 @@
         </div>
     </div>
 
-    <!-- Create Room Modal -->
-    <div id="createRoomModal" class="modal-overlay">
+    <!-- Files View Modal -->
+    <div id="filesViewModal" class="modal-overlay">
         <div class="modal-content">
-            <h3 class="modal-title">Create New Room</h3>
-            <div class="modal-input-group">
-                <input type="text" id="roomName" placeholder="Room name" class="modal-input">
+            <div class="modal-header">
+                <h3 class="modal-title">Room Files</h3>
+                <button onclick="closeModal('filesViewModal')" class="modal-close-btn">✕</button>
             </div>
-            <div class="modal-input-group last">
-                <input type="text" id="newRoomDescription" placeholder="Description (optional)" class="modal-input">
-            </div>
-            <div class="modal-button-group">
-                <button onclick="closeModal('createRoomModal')" class="modal-btn-cancel">Cancel</button>
-                <button id="confirmCreateRoom" class="modal-btn-confirm">Create</button>
+            <div id="filesListModal" class="files-list-modal">
+                <div style="text-align: center; padding: 20px; color: var(--text-muted);">No files uploaded</div>
             </div>
         </div>
     </div>
-
-    <!-- Invite Members Modal -->
-    <div id="inviteMembersModal" class="modal-overlay">
-        <div class="modal-content">
-            <h3 class="modal-title">Invite Users to Room</h3>
-            <div class="modal-members-list" id="membersList">
-                <div class="modal-members-loading">Loading members...</div>
-            </div>
-            <div class="modal-input-group last">
-                <input type="text" id="inviteUsername" placeholder="Enter username to invite" class="modal-input">
-            </div>
-            <div class="modal-button-group">
-                <button onclick="closeModal('inviteMembersModal')" class="modal-btn-cancel">Cancel</button>
-                <button id="confirmInvite" class="modal-btn-confirm">Invite</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- View Profile Modal -->
-    <div id="viewProfileModal" class="modal-overlay">
-        <div class="modal-content">
-            <h3 class="modal-title">User Profile</h3>
-            <div class="modal-profile-section">
-                <img id="profileAvatar" src="" alt="avatar" class="modal-profile-avatar">
-                <div id="profileUsername" class="modal-profile-username"></div>
-                <div id="profileStatus" class="modal-profile-status"></div>
-            </div>
-            <button onclick="closeModal('viewProfileModal')" class="modal-btn-full">Close</button>
-        </div>
-    </div>
-
-    </main>
-
-    <script src="room.js"></script>
-    </body>
-    </html>
+</body>
