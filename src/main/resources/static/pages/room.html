@@ -1,3 +1,4 @@
+
 <body class="pixel-ui">
     <!-- Top Bar -->
     <header class="top-bar">
@@ -9,15 +10,25 @@
             </div>
         </div>
         <div class="top-icons">
-            <button class="icon-btn" title="Notifications">🔔</button>
-            <button class="icon-btn" id="homeBtn" title="Home">🏠</button>
+            <button class="home-btn" id="deleteRoomBtn" style="display: none;">
+                <span class="home-icon">🗑️</span>
+                Delete Room
+            </button>
+            <button class="home-btn" id="logoutBtn">
+                <span class="home-icon">🚪</span>
+                Logout
+            </button>
+            <button class="home-btn" id="homeBtn">
+                <span class="home-icon">🏠</span>
+                Home
+            </button>
         </div>
     </header>
 
     <!-- Main Workspace -->
     <main class="workspace">
-        <!-- Placeholder for Chat -->
-        <div class="placeholder-box chat-placeholder">
+        <!-- Placeholder for Chat (shown when no room is selected) -->
+        <div class="placeholder-box chat-placeholder visible">
             <div>Chat Window Closed<br>Select a room to start chatting</div>
         </div>
 
@@ -38,16 +49,18 @@
                     </div>
                 </div>
 
+                <div class="typing-indicator" id="typingIndicator" style="display: none;"></div>
+
                 <div class="chat-input" id="messageInputContainer" style="display: none;">
-                    <div id="replyPreview" class="reply-preview">
+                    <div id="replyPreview" class="reply-preview" style="display: none;">
                         <div class="reply-preview-header">
                             <span id="replyText"></span>
                             <button id="cancelReply" class="reply-preview-close">✕</button>
                         </div>
                     </div>
-                    <div id="typingIndicator" class="typing-indicator"></div>
-                    <input type="file" id="fileInput" class="file-input-hidden" />
-                    <button id="fileBtn">📎</button>
+                    
+                    <input type="file" id="fileInput" class="file-input-hidden" style="display: none;" />
+                    <button id="fileBtn" title="Upload File">📎</button>
                     <input id="messageInput" type="text" placeholder="Type message..." />
                     <button id="notesBtn" class="chat-icon-btn" title="Notes">📝</button>
                     <button id="filesViewBtn" class="chat-icon-btn" title="Files">📁</button>
@@ -55,7 +68,7 @@
                 </div>
 
                 <!-- Emoji Picker -->
-                <div id="emojiPicker" class="emoji-picker">
+                <div id="emojiPicker" class="emoji-picker" style="display: none; position: fixed; z-index: 9999;">
                     <div id="emojiGrid" class="emoji-grid"></div>
                 </div>
             </div>
@@ -84,12 +97,12 @@
         </section>
 
         <!-- Placeholder for Files -->
-        <div class="placeholder-box files-placeholder">
+        <div class="placeholder-box files-placeholder visible">
             <div>Meeting Files<br>Open a chat to view files</div>
         </div>
 
         <!-- Files Panel -->
-        <aside class="files-panel window">
+        <aside class="files-panel window" style="display: none;">
             <div class="window-titlebar">
                 <div class="window-title">Meeting Files</div>
                 <div class="window-controls">
@@ -143,7 +156,7 @@
                 <h3 class="modal-title">Room Files</h3>
                 <button onclick="closeModal('filesViewModal')" class="modal-close-btn">✕</button>
             </div>
-            <div id="filesListModal" class="files-list-modal">
+            <div id="filesListModal" class="files-list-modal" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; padding: 15px; max-height: 400px; overflow-y: auto;">
                 <div style="text-align: center; padding: 20px; color: var(--text-muted);">No files uploaded</div>
             </div>
         </div>
