@@ -30,17 +30,13 @@ function displayRooms() {
     const roomsList = document.getElementById('roomsList');
     
     if (userRooms.length === 0) {
-        roomsList.innerHTML = '<div class="no-rooms">No rooms yet. Create one!</div>';
+        roomsList.innerHTML = '<div style="padding: 20px; text-align: center; color: #66506D; font-size: 12px;">No rooms yet. Create one!</div>';
         return;
     }
     
     roomsList.innerHTML = userRooms.map(room => `
-        <div class="room-card" data-room-id="${room.id}">
-            <div class="room-info">
-                <div class="room-name">${room.name}</div>
-                <div class="room-description">${room.description || 'No description'}</div>
-            </div>
-            <button class="room-enter-btn" onclick="enterRoom(${room.id})">Enter</button>
+        <div class="room-item" onclick="enterRoom(${room.id})">
+            <div class="room-item-name">${room.name}</div>
         </div>
     `).join('');
 }
@@ -49,7 +45,7 @@ function populateRoomDropdown() {
     const dropdown = document.getElementById('dropdownOptions');
     
     if (userRooms.length === 0) {
-        dropdown.innerHTML = '<div class="dropdown-option">No rooms available</div>';
+        dropdown.innerHTML = '<div class="dropdown-option" style="opacity: 0.5;">No rooms available</div>';
         return;
     }
     
@@ -58,7 +54,9 @@ function populateRoomDropdown() {
     `).join('');
     
     dropdown.querySelectorAll('.dropdown-option').forEach(option => {
-        option.addEventListener('click', () => selectRoom(option));
+        if (option.dataset.roomId) {
+            option.addEventListener('click', () => selectRoom(option));
+        }
     });
 }
 
@@ -69,6 +67,7 @@ function selectRoom(option) {
     document.getElementById('dropdownSelected').querySelector('.dropdown-text').textContent = roomName;
     document.getElementById('dropdownSelected').dataset.selectedRoom = roomId;
     document.getElementById('dropdownOptions').classList.remove('show');
+    document.getElementById('dropdownArrow').classList.remove('open');
 }
 
 async function createRoom() {
@@ -78,9 +77,6 @@ async function createRoom() {
         showModal('Please enter a room name');
         return;
     }
-    
-    const maxMembersCheck = document.getElementById('maxMembersCheck').checked;
-    const adminOnly = document.getElementById('adminOnlyCheck').checked;
     
     try {
         const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
@@ -97,6 +93,10 @@ async function createRoom() {
         if (response.ok) {
             showModal('Room created successfully!');
             document.getElementById('roomNameInput').value = '';
+            document.getElementById('maxMembersCheck').checked = false;
+            document.getElementById('adminOnlyCheck').checked = false;
+            document.getElementById('maxMembersInput').disabled = true;
+            document.getElementById('maxMembersInput').value = '';
             await loadUserRooms();
         } else {
             showModal('Failed to create room');
@@ -126,18 +126,18 @@ async function searchRoom() {
         if (response.ok) {
             const members = await response.json();
             resultDiv.innerHTML = `
-                <div class="room-found">
-                    <div>Room ID: ${roomId}</div>
-                    <div>Members: ${members.length}</div>
-                    <button onclick="joinRoom(${roomId})">Join Room</button>
+                <div class="team-result-item" onclick="joinRoom(${roomId})">
+                    <div class="team-result-info">
+                        <div class="team-result-name">Room #${roomId}</div>
+                    </div>
                 </div>
             `;
         } else {
-            resultDiv.innerHTML = '<div class="room-not-found">Room not found</div>';
+            resultDiv.innerHTML = '<div class="search-result-empty">Room not found</div>';
         }
     } catch (err) {
         console.error('Search room error:', err);
-        resultDiv.innerHTML = '<div class="room-error">Search failed</div>';
+        resultDiv.innerHTML = '<div class="search-result-empty">Search failed</div>';
     }
 }
 
@@ -224,22 +224,42 @@ function initializeUI() {
     const dropdownIcon = document.getElementById('dropdownIcon');
     
     advancedToggle.addEventListener('click', () => {
-        const isOpen = settingsContent.classList.toggle('open');
-        dropdownIcon.textContent = isOpen ? '▼' : '▶';
+        const isOpen = settingsContent.classList.contains('open');
+        if (isOpen) {
+            settingsContent.classList.remove('open');
+            settingsContent.style.display = 'none';
+            dropdownIcon.classList.remove('open');
+        } else {
+            settingsContent.classList.add('open');
+            settingsContent.style.display = 'block';
+            dropdownIcon.classList.add('open');
+        }
     });
     
     document.getElementById('maxMembersCheck').addEventListener('change', (e) => {
         document.getElementById('maxMembersInput').disabled = !e.target.checked;
     });
     
-    const dropdown = document.getElementById('dropdownSelected');
-    dropdown.addEventListener('click', () => {
-        document.getElementById('dropdownOptions').classList.toggle('show');
+    const dropdownSelected = document.getElementById('dropdownSelected');
+    const dropdownOptions = document.getElementById('dropdownOptions');
+    const dropdownArrow = document.getElementById('dropdownArrow');
+    
+    dropdownSelected.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = dropdownOptions.classList.contains('show');
+        if (isOpen) {
+            dropdownOptions.classList.remove('show');
+            dropdownArrow.classList.remove('open');
+        } else {
+            dropdownOptions.classList.add('show');
+            dropdownArrow.classList.add('open');
+        }
     });
     
     document.addEventListener('click', (e) => {
         if (!e.target.closest('#roomDropdown')) {
-            document.getElementById('dropdownOptions').classList.remove('show');
+            dropdownOptions.classList.remove('show');
+            dropdownArrow.classList.remove('open');
         }
     });
     
@@ -249,6 +269,16 @@ function initializeUI() {
     document.getElementById('modalOkBtn').addEventListener('click', () => {
         document.getElementById('confirmModal').style.display = 'none';
     });
+    
+    const homeBtn = document.querySelector('.icon-btn[title="Home"]');
+    if (homeBtn) {
+        homeBtn.addEventListener('click', () => window.navigateTo('dashboard'));
+    }
+    
+    const notifBtn = document.querySelector('.icon-btn[title="Notifications"]');
+    if (notifBtn) {
+        notifBtn.addEventListener('click', () => alert('Notifications feature coming soon!'));
+    }
 }
 
 window.enterRoom = enterRoom;

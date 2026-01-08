@@ -1,5 +1,6 @@
 const API_BASE = window.location.origin;
 let currentRoomId = null;
+let currentRoomName = '';
 let messages = [];
 let notes = [];
 let replyToMessage = null;
@@ -7,7 +8,8 @@ let typingTimeout = null;
 
 function displayUsername() {
     const username = window.getCurrentUser();
-    document.getElementById('currentUserDisplay').textContent = username;
+    const display = document.getElementById('currentUserDisplay');
+    if (display) display.textContent = username;
 }
 
 async function initializeRoom() {
@@ -39,6 +41,7 @@ async function loadRoomData() {
             
             const currentRoom = rooms.find(r => r.id == currentRoomId);
             if (currentRoom) {
+                currentRoomName = currentRoom.name;
                 document.getElementById('chatRoomTitle').textContent = currentRoom.name;
                 showChatWindow();
             }
@@ -56,8 +59,10 @@ async function loadRoomData() {
 
 function displayRoomsList(rooms) {
     const roomsContent = document.querySelector('.rooms-content');
+    if (!roomsContent) return;
+    
     roomsContent.innerHTML = rooms.map(room => `
-        <div class="room-item" data-room-id="${room.id}">
+        <div class="room-item ${room.id == currentRoomId ? 'active' : ''}" data-room-id="${room.id}">
             <span class="room-icon">💼</span>
             <span>${room.name}</span>
         </div>
@@ -78,6 +83,9 @@ async function switchRoom(roomId) {
     if (window.reactionSubscription) {
         window.reactionSubscription.unsubscribe();
     }
+    
+    messages = [];
+    notes = [];
     
     await loadRoomData();
     setupWebSocket();
@@ -120,7 +128,7 @@ async function loadRoomMembers() {
 async function loadNotes() {
     try {
         const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
-        const response = await fetch(`${API_BASE}/rooms/${currentRoomId}/notes`, {
+        const response = await fetch(`${API_BASE}/rooms/${currentRoomId}/notes?limit=50`, {
             headers: { 'Authorization': `Bearer ${token}` },
             credentials: 'include'
         });
@@ -136,6 +144,7 @@ async function loadNotes() {
 
 function displayMessages() {
     const container = document.getElementById('messagesContainer');
+    if (!container) return;
     
     if (messages.length === 0) {
         container.innerHTML = `
@@ -149,30 +158,32 @@ function displayMessages() {
     container.innerHTML = messages.map(msg => {
         const isOwn = msg.username === window.getCurrentUser();
         const replyHtml = msg.replyTo ? `
-            <div class="message-reply">
-                <strong>${msg.replyTo.username}:</strong> ${msg.replyTo.content}
+            <div class="message-reply-preview">
+                <strong>${escapeHtml(msg.replyTo.username)}:</strong> ${escapeHtml(msg.replyTo.content.substring(0, 50))}${msg.replyTo.content.length > 50 ? '...' : ''}
             </div>
         ` : '';
         
         const reactionsHtml = msg.reactions && msg.reactions.length > 0 ? `
-            <div class="message-reactions">
-                ${msg.reactions.map(r => `<span class="reaction">${r.emoji}</span>`).join('')}
+            <div class="reactions-display">
+                ${getGroupedReactions(msg.reactions).map(r => 
+                    `<span class="reaction ${r.userReacted ? 'user-reaction' : ''}" onclick="toggleReaction(${msg.id}, '${r.emoji}')">${r.emoji}<span class="reaction-count">${r.count}</span></span>`
+                ).join('')}
             </div>
         ` : '';
         
         return `
             <div class="message ${isOwn ? 'own-message' : ''}" data-message-id="${msg.id}">
                 <div class="message-header">
-                    <strong>${msg.username}</strong>
-                    <span class="message-time">${formatTime(msg.timestamp)}</span>
+                    <span class="message-username">${escapeHtml(msg.username)}</span>
+                    <span class="message-timestamp">${formatTime(msg.timestamp)}</span>
                 </div>
                 ${replyHtml}
                 <div class="message-content">${escapeHtml(msg.content)}</div>
                 ${reactionsHtml}
                 <div class="message-actions">
-                    <button onclick="setReplyTo(${msg.id}, '${escapeHtml(msg.username)}', '${escapeHtml(msg.content)}')">↩️</button>
-                    <button onclick="showEmojiPicker(${msg.id})">😊</button>
-                    ${isOwn ? `<button onclick="deleteMessage(${msg.id})">🗑️</button>` : ''}
+                    <span class="reply-btn" onclick="setReplyTo(${msg.id}, '${escapeHtml(msg.username)}', '${escapeHtml(msg.content).replace(/'/g, "\\'")}')">↩️</span>
+                    <span class="reaction-btn" onclick="showEmojiPicker(${msg.id}, event)">😊</span>
+                    ${isOwn ? `<span class="reaction-btn" onclick="deleteMessage(${msg.id})">🗑️</span>` : ''}
                 </div>
             </div>
         `;
@@ -181,35 +192,55 @@ function displayMessages() {
     container.scrollTop = container.scrollHeight;
 }
 
+function getGroupedReactions(reactions) {
+    const grouped = {};
+    const currentUser = window.getCurrentUser();
+    
+    reactions.forEach(r => {
+        if (!grouped[r.emoji]) {
+            grouped[r.emoji] = { emoji: r.emoji, count: 0, userReacted: false };
+        }
+        grouped[r.emoji].count++;
+        if (r.username === currentUser) {
+            grouped[r.emoji].userReacted = true;
+        }
+    });
+    
+    return Object.values(grouped);
+}
+
 function displayMembers(members) {
     const membersList = document.getElementById('membersList');
+    if (!membersList) return;
+    
     membersList.innerHTML = members.map(username => `
-        <li class="member-list-item">
-            <span class="member-avatar">👤</span>
-            <span>${username}</span>
+        <li class="member-item">
+            <span class="member-status ${username === window.getCurrentUser() ? 'online' : 'offline'}"></span>
+            <span>${escapeHtml(username)}</span>
         </li>
     `).join('');
 }
 
 function displayNotes() {
     const notesList = document.getElementById('notesList');
+    if (!notesList) return;
     
     if (notes.length === 0) {
-        notesList.innerHTML = '<div class="note-empty">No notes yet</div>';
+        notesList.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 8px;">No notes yet</div>';
         return;
     }
     
     notesList.innerHTML = notes.map(note => `
-        <div class="note-item">
-            <div class="note-author">${note.username}</div>
-            <div class="note-content">${escapeHtml(note.content)}</div>
+        <div class="note-item" style="background: white; border: 2px solid var(--border-dark); padding: 10px; margin-bottom: 10px;">
+            <div style="font-size: 7px; color: var(--text-muted); margin-bottom: 5px;">${escapeHtml(note.username)}</div>
+            <div style="font-size: 8px;">${escapeHtml(note.content)}</div>
         </div>
     `).join('');
 }
 
 function setupWebSocket() {
     if (!window.isWebSocketConnected()) {
-        console.log('WebSocket not connected, waiting...');
+        console.log('WebSocket not connected, retrying...');
         setTimeout(setupWebSocket, 1000);
         return;
     }
@@ -294,6 +325,7 @@ function showTypingIndicator(data) {
     if (data.username === window.getCurrentUser()) return;
     
     const indicator = document.getElementById('typingIndicator');
+    if (!indicator) return;
     
     if (data.typing) {
         indicator.textContent = `${data.username} is typing...`;
@@ -305,8 +337,9 @@ function showTypingIndicator(data) {
 
 function sendMessage() {
     const input = document.getElementById('messageInput');
-    const content = input.value.trim();
+    if (!input) return;
     
+    const content = input.value.trim();
     if (!content) return;
     
     const stomp = window.stompClient;
@@ -331,13 +364,16 @@ function setReplyTo(messageId, username, content) {
     const preview = document.getElementById('replyPreview');
     const replyText = document.getElementById('replyText');
     
-    replyText.textContent = `Replying to ${username}: ${content.substring(0, 50)}...`;
-    preview.style.display = 'block';
+    if (preview && replyText) {
+        replyText.textContent = `Replying to ${username}: ${content.substring(0, 50)}...`;
+        preview.style.display = 'block';
+    }
 }
 
 function clearReply() {
     replyToMessage = null;
-    document.getElementById('replyPreview').style.display = 'none';
+    const preview = document.getElementById('replyPreview');
+    if (preview) preview.style.display = 'none';
 }
 
 function deleteMessage(messageId) {
@@ -350,13 +386,21 @@ function deleteMessage(messageId) {
     }));
 }
 
-function showEmojiPicker(messageId) {
+function showEmojiPicker(messageId, event) {
     const picker = document.getElementById('emojiPicker');
+    if (!picker) return;
+    
     const emojis = ['👍', '❤️', '😂', '😮', '😢', '🎉', '🔥', '👏'];
     
     document.getElementById('emojiGrid').innerHTML = emojis.map(emoji => 
-        `<button class="emoji-btn" onclick="reactToMessage(${messageId}, '${emoji}')">${emoji}</button>`
+        `<button class="emoji-item" onclick="reactToMessage(${messageId}, '${emoji}')">${emoji}</button>`
     ).join('');
+    
+    if (event) {
+        picker.style.left = `${event.pageX}px`;
+        picker.style.top = `${event.pageY}px`;
+        picker.style.position = 'fixed';
+    }
     
     picker.style.display = 'block';
     setTimeout(() => picker.style.display = 'none', 5000);
@@ -364,20 +408,50 @@ function showEmojiPicker(messageId) {
 
 function reactToMessage(messageId, emoji) {
     const stomp = window.stompClient;
-    stomp.send(`/app/rooms/${currentRoomId}/react`, {}, JSON.stringify({
-        messageId: messageId,
-        username: window.getCurrentUser(),
-        emoji: emoji,
-        type: 'POST'
-    }));
+    const currentUser = window.getCurrentUser();
     
-    document.getElementById('emojiPicker').style.display = 'none';
+    const msg = messages.find(m => m.id === messageId);
+    const existingReaction = msg?.reactions?.find(r => 
+        r.username === currentUser && r.messageId === messageId
+    );
+    
+    if (existingReaction) {
+        if (existingReaction.emoji === emoji) {
+            stomp.send(`/app/rooms/${currentRoomId}/react`, {}, JSON.stringify({
+                messageId: messageId,
+                username: currentUser,
+                type: 'DELETE'
+            }));
+        } else {
+            stomp.send(`/app/rooms/${currentRoomId}/react`, {}, JSON.stringify({
+                messageId: messageId,
+                username: currentUser,
+                emoji: emoji,
+                type: 'UPDATE'
+            }));
+        }
+    } else {
+        stomp.send(`/app/rooms/${currentRoomId}/react`, {}, JSON.stringify({
+            messageId: messageId,
+            username: currentUser,
+            emoji: emoji,
+            type: 'POST'
+        }));
+    }
+    
+    const picker = document.getElementById('emojiPicker');
+    if (picker) picker.style.display = 'none';
+}
+
+function toggleReaction(messageId, emoji) {
+    reactToMessage(messageId, emoji);
 }
 
 function addNote() {
     const input = document.getElementById('noteInput');
-    const content = input.value.trim();
+    if (!input) return;
     
+    const content = input.value.trim();
     if (!content) return;
     
     const stomp = window.stompClient;
@@ -391,64 +465,100 @@ function addNote() {
 }
 
 function openModal(modalId) {
-    document.getElementById(modalId).style.display = 'flex';
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'flex';
+        modal.classList.add('show');
+    }
 }
 
 function closeModal(modalId) {
-    document.getElementById(modalId).style.display = 'none';
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+        modal.classList.remove('show');
+    }
 }
 
 function showChatWindow() {
-    document.querySelector('.chat-placeholder').style.display = 'none';
-    document.querySelector('.chat-window').style.display = 'flex';
-    document.getElementById('messageInputContainer').style.display = 'flex';
+    const chatPlaceholder = document.querySelector('.chat-placeholder');
+    const chatWindow = document.querySelector('.chat-window');
+    const messageInputContainer = document.getElementById('messageInputContainer');
+    
+    if (chatPlaceholder) chatPlaceholder.style.display = 'none';
+    if (chatWindow) {
+        chatWindow.style.display = 'grid';
+        chatWindow.classList.add('active');
+    }
+    if (messageInputContainer) messageInputContainer.style.display = 'flex';
 }
 
 function setupEventListeners() {
-    document.getElementById('sendBtn').addEventListener('click', sendMessage);
-    document.getElementById('messageInput').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') sendMessage();
-    });
+    const sendBtn = document.getElementById('sendBtn');
+    const messageInput = document.getElementById('messageInput');
+    const cancelReply = document.getElementById('cancelReply');
+    const notesBtn = document.getElementById('notesBtn');
+    const addNoteBtn = document.getElementById('addNoteBtn');
+    const homeBtn = document.getElementById('homeBtn');
+    const viewProfileBtn = document.getElementById('viewProfileBtn');
     
-    document.getElementById('messageInput').addEventListener('input', (e) => {
-        clearTimeout(typingTimeout);
-        
-        const stomp = window.stompClient;
-        stomp.send(`/app/rooms/${currentRoomId}/typing`, {}, JSON.stringify({
-            username: window.getCurrentUser(),
-            typing: true
-        }));
-        
-        typingTimeout = setTimeout(() => {
-            stomp.send(`/app/rooms/${currentRoomId}/typing`, {}, JSON.stringify({
-                username: window.getCurrentUser(),
-                typing: false
-            }));
-        }, 1000);
-    });
+    if (sendBtn) sendBtn.addEventListener('click', sendMessage);
     
-    document.getElementById('cancelReply').addEventListener('click', clearReply);
-    document.getElementById('notesBtn').addEventListener('click', () => openModal('notesModal'));
-    document.getElementById('addNoteBtn').addEventListener('click', addNote);
-    document.getElementById('homeBtn').addEventListener('click', () => window.navigateTo('landing'));
-    document.getElementById('viewProfileBtn').addEventListener('click', () => openModal('viewProfileModal'));
+    if (messageInput) {
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+        
+        messageInput.addEventListener('input', () => {
+            clearTimeout(typingTimeout);
+            
+            const stomp = window.stompClient;
+            if (stomp && stomp.connected) {
+                stomp.send(`/app/rooms/${currentRoomId}/typing`, {}, JSON.stringify({
+                    username: window.getCurrentUser(),
+                    typing: true
+                }));
+                
+                typingTimeout = setTimeout(() => {
+                    stomp.send(`/app/rooms/${currentRoomId}/typing`, {}, JSON.stringify({
+                        username: window.getCurrentUser(),
+                        typing: false
+                    }));
+                }, 1000);
+            }
+        });
+    }
+    
+    if (cancelReply) cancelReply.addEventListener('click', clearReply);
+    if (notesBtn) notesBtn.addEventListener('click', () => openModal('notesModal'));
+    if (addNoteBtn) addNoteBtn.addEventListener('click', addNote);
+    if (homeBtn) homeBtn.addEventListener('click', () => window.navigateTo('landing'));
+    if (viewProfileBtn) viewProfileBtn.addEventListener('click', () => alert('Profile feature coming soon!'));
     
     document.querySelectorAll('.window-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const action = e.target.dataset.action;
             
             if (action === 'minimize-chat' || action === 'close-chat') {
-                document.querySelector('.chat-window').style.display = 'none';
-                document.querySelector('.chat-placeholder').style.display = 'flex';
+                const chatWindow = document.querySelector('.chat-window');
+                const chatPlaceholder = document.querySelector('.chat-placeholder');
+                if (chatWindow) chatWindow.style.display = 'none';
+                if (chatPlaceholder) chatPlaceholder.style.display = 'flex';
             } else if (action === 'minimize-files') {
                 const filesPanel = document.querySelector('.files-panel');
-                const placeholder = document.querySelector('.files-placeholder');
-                filesPanel.style.display = 'none';
-                placeholder.style.display = 'flex';
+                if (filesPanel) filesPanel.classList.toggle('minimized');
             } else if (action === 'minimize-rooms') {
-                document.querySelector('.rooms-panel').classList.toggle('minimized');
+                const roomsPanel = document.querySelector('.rooms-panel');
+                if (roomsPanel) roomsPanel.classList.toggle('minimized');
             }
         });
+    });
+    
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.emoji-picker') && !e.target.closest('.reaction-btn')) {
+            const picker = document.getElementById('emojiPicker');
+            if (picker) picker.style.display = 'none';
+        }
     });
 }
 
@@ -458,6 +568,7 @@ function formatTime(timestamp) {
 }
 
 function escapeHtml(text) {
+    if (!text) return '';
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
@@ -467,6 +578,7 @@ window.setReplyTo = setReplyTo;
 window.deleteMessage = deleteMessage;
 window.showEmojiPicker = showEmojiPicker;
 window.reactToMessage = reactToMessage;
+window.toggleReaction = toggleReaction;
 window.closeModal = closeModal;
 
 displayUsername();
