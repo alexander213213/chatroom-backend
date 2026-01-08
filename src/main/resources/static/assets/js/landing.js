@@ -1,253 +1,114 @@
-console.log('Landing page loaded');
+const API_BASE = window.location.origin;
+let userRooms = [];
 
-// API Functions
-const api = {
-    async request(endpoint, options = {}) {
-        const url = `${CONFIG.API_BASE}${endpoint}`;
-        const token = localStorage.getItem('token') || sessionStorage.getItem('authToken');
+function displayUsername() {
+    const username = window.getCurrentUser();
+    document.querySelectorAll('.username').forEach(el => {
+        el.textContent = username;
+    });
+}
+
+async function loadUserRooms() {
+    try {
+        const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
+        const response = await fetch(`${API_BASE}/rooms`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+            credentials: 'include'
+        });
         
-        const defaultOptions = {
-            credentials: 'include',
-            headers: {
-                'Content-Type': 'application/json',
-                ...(token && { 'Authorization': `Bearer ${token}` })
-            }
-        };
-        
-        const response = await fetch(url, { ...defaultOptions, ...options });
-        
-        if (response.status === 401) {
-            if (typeof logout === 'function') {
-                logout();
-            }
-            return;
+        if (response.ok) {
+            userRooms = await response.json();
+            displayRooms();
+            populateRoomDropdown();
         }
-        
-        return response;
-    },
-    
-    async getRooms() {
-        return await this.request('/rooms');
-    },
-    
-    async createRoom(name) {
-        return await this.request('/rooms', {
-            method: 'POST',
-            body: JSON.stringify({ name })
-        });
-    },
-    
-    async getRoomMembers(roomId) {
-        return await this.request(`/rooms/${roomId}`);
-    },
-    
-    async inviteUsers(roomId, usernames) {
-        return await this.request(`/rooms/${roomId}/invite`, {
-            method: 'POST',
-            body: JSON.stringify(usernames)
-        });
+    } catch (err) {
+        console.error('Failed to load rooms:', err);
     }
-};
+}
 
-// State
-let currentUsername = null;
-let rooms = [];
-let allMembers = [];
-
-// Initialize
-function initLanding() {
-    console.log('Initializing landing page...');
+function displayRooms() {
+    const roomsList = document.getElementById('roomsList');
     
-    if (typeof checkAuth === 'function' && !checkAuth()) {
-        console.log('Not authenticated');
-        if (typeof navigateTo === 'function') {
-            navigateTo('auth');
-        }
+    if (userRooms.length === 0) {
+        roomsList.innerHTML = '<div class="no-rooms">No rooms yet. Create one!</div>';
         return;
     }
     
-    currentUsername = getCurrentUser();
-    
-    loadUserData();
-    setupEventListeners();
-    
-    console.log('✓ Landing page initialized');
+    roomsList.innerHTML = userRooms.map(room => `
+        <div class="room-card" data-room-id="${room.id}">
+            <div class="room-info">
+                <div class="room-name">${room.name}</div>
+                <div class="room-description">${room.description || 'No description'}</div>
+            </div>
+            <button class="room-enter-btn" onclick="enterRoom(${room.id})">Enter</button>
+        </div>
+    `).join('');
 }
 
-// Load Data
-async function loadUserData() {
-    const topUsername = document.querySelector('.top-bar .username');
-    if (topUsername) topUsername.textContent = currentUsername;
+function populateRoomDropdown() {
+    const dropdown = document.getElementById('dropdownOptions');
     
-    try {
-        const response = await api.getRooms();
-        if (response && response.ok) {
-            rooms = await response.json();
-            console.log('Loaded rooms:', rooms);
-            await loadAllMembers();
-            renderRooms();
-            renderRoomDropdown();
-            renderTeamMembers();
-        }
-    } catch (error) {
-        console.error('Error loading rooms:', error);
+    if (userRooms.length === 0) {
+        dropdown.innerHTML = '<div class="dropdown-option">No rooms available</div>';
+        return;
     }
+    
+    dropdown.innerHTML = userRooms.map(room => `
+        <div class="dropdown-option" data-room-id="${room.id}">${room.name}</div>
+    `).join('');
+    
+    dropdown.querySelectorAll('.dropdown-option').forEach(option => {
+        option.addEventListener('click', () => selectRoom(option));
+    });
 }
 
-// Load all members from all rooms
-async function loadAllMembers() {
-    const membersByUser = new Map();
+function selectRoom(option) {
+    const roomId = option.dataset.roomId;
+    const roomName = option.textContent;
     
-    try {
-        for (const room of rooms) {
-            const response = await api.getRoomMembers(room.id);
-            if (response && response.ok) {
-                const members = await response.json();
-                
-                members.forEach(memberName => {
-                    if (memberName === currentUsername) return;
-                    
-                    if (!membersByUser.has(memberName)) {
-                        membersByUser.set(memberName, {
-                            name: memberName,
-                            mutualRooms: []
-                        });
-                    }
-                    membersByUser.get(memberName).mutualRooms.push(room.name);
-                });
-            }
-        }
-        
-        allMembers = Array.from(membersByUser.values());
-        console.log('Loaded members:', allMembers);
-        
-    } catch (error) {
-        console.error('Error loading members:', error);
-    }
+    document.getElementById('dropdownSelected').querySelector('.dropdown-text').textContent = roomName;
+    document.getElementById('dropdownSelected').dataset.selectedRoom = roomId;
+    document.getElementById('dropdownOptions').classList.remove('show');
 }
 
-// Event Listeners
-function setupEventListeners() {
-    // Top bar buttons
-    const notifBtn = document.querySelectorAll('.icon-btn')[0];
-    if (notifBtn) {
-        notifBtn.addEventListener('click', () => {
-            showModal('Notifications feature coming soon!');
-        });
-    }
-    
-    const homeBtn = document.querySelectorAll('.icon-btn')[1];
-    if (homeBtn) {
-        homeBtn.addEventListener('click', () => {
-            if (typeof navigateTo === 'function') {
-                navigateTo('dashboard');
-            }
-        });
-    }
-    
-    const viewProfile = document.querySelector('.view-profile');
-    if (viewProfile) {
-        viewProfile.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (typeof navigateTo === 'function') {
-                navigateTo('dashboard');
-            }
-        });
-    }
-    
-    // Advanced settings toggle
-    const advancedToggle = document.getElementById('advancedToggle');
-    const settingsContent = document.getElementById('settingsContent');
-    if (advancedToggle && settingsContent) {
-        advancedToggle.addEventListener('click', () => {
-            const isHidden = settingsContent.style.display === 'none';
-            settingsContent.style.display = isHidden ? 'block' : 'none';
-            advancedToggle.textContent = isHidden ? 'Advanced Settings ▲' : 'Advanced Settings ▼';
-        });
-    }
-    
-    // Max members checkbox
-    const maxMembersCheck = document.getElementById('maxMembersCheck');
-    const maxMembersInput = document.getElementById('maxMembersInput');
-    if (maxMembersCheck && maxMembersInput) {
-        maxMembersCheck.addEventListener('change', () => {
-            maxMembersInput.disabled = !maxMembersCheck.checked;
-        });
-    }
-    
-    // Create room button
-    const createRoomBtn = document.getElementById('createRoomBtn');
-    if (createRoomBtn) {
-        createRoomBtn.addEventListener('click', handleCreateRoom);
-    }
-    
-    // Room ID search (Team-ups)
-    const roomIdInput = document.getElementById('roomIdInput');
-    if (roomIdInput) {
-        roomIdInput.addEventListener('input', handleRoomSearch);
-    }
-    
-    // Send invite button
-    const sendInviteBtn = document.getElementById('sendInviteBtn');
-    if (sendInviteBtn) {
-        sendInviteBtn.addEventListener('click', handleSendInvite);
-    }
-    
-    // Rooms search
-    const roomsSearch = document.getElementById('roomsSearch');
-    if (roomsSearch) {
-        roomsSearch.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            renderRooms(searchTerm);
-        });
-    }
-    
-    // Modal OK button
-    const modalOkBtn = document.getElementById('modalOkBtn');
-    if (modalOkBtn) {
-        modalOkBtn.addEventListener('click', () => {
-            document.getElementById('confirmModal').style.display = 'none';
-        });
-    }
-}
-
-// Create Room
-async function handleCreateRoom() {
-    const roomNameInput = document.getElementById('roomNameInput');
-    const roomName = roomNameInput.value.trim();
+async function createRoom() {
+    const roomName = document.getElementById('roomNameInput').value.trim();
     
     if (!roomName) {
         showModal('Please enter a room name');
         return;
     }
     
+    const maxMembersCheck = document.getElementById('maxMembersCheck').checked;
+    const adminOnly = document.getElementById('adminOnlyCheck').checked;
+    
     try {
-        const response = await api.createRoom(roomName);
-        if (response && response.ok) {
+        const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
+        const response = await fetch(`${API_BASE}/rooms`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            credentials: 'include',
+            body: JSON.stringify({ name: roomName, description: '' })
+        });
+        
+        if (response.ok) {
             showModal('Room created successfully!');
-            roomNameInput.value = '';
-            
-            // Reset advanced settings
-            document.getElementById('maxMembersCheck').checked = false;
-            document.getElementById('maxMembersInput').disabled = true;
-            document.getElementById('maxMembersInput').value = '';
-            document.getElementById('settingsContent').style.display = 'none';
-            document.getElementById('advancedToggle').textContent = 'Advanced Settings ▼';
-            
-            // Reload rooms
-            await loadUserData();
+            document.getElementById('roomNameInput').value = '';
+            await loadUserRooms();
         } else {
             showModal('Failed to create room');
         }
-    } catch (error) {
-        console.error('Error creating room:', error);
-        showModal('Could not create room');
+    } catch (err) {
+        console.error('Create room error:', err);
+        showModal('Connection error');
     }
 }
 
-// Room Search (Team-ups)
-function handleRoomSearch(e) {
-    const roomId = e.target.value.trim();
+async function searchRoom() {
+    const roomId = document.getElementById('roomIdInput').value.trim();
     const resultDiv = document.getElementById('roomSearchResult');
     
     if (!roomId) {
@@ -255,105 +116,63 @@ function handleRoomSearch(e) {
         return;
     }
     
-    // Search for room by ID
-    const foundRoom = rooms.find(r => r.id.toString() === roomId);
-    
-    if (foundRoom) {
-        resultDiv.innerHTML = `
-            <div class="room-result-item">
-                <div class="room-result-name">${foundRoom.name}</div>
-                <button class="btn-join" onclick="joinRoom(${foundRoom.id})">Join</button>
-            </div>
-        `;
-    } else {
-        resultDiv.innerHTML = '<div style="color: var(--text-muted);">No room found with this ID</div>';
+    try {
+        const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
+        const response = await fetch(`${API_BASE}/rooms/${roomId}`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+            credentials: 'include'
+        });
+        
+        if (response.ok) {
+            const members = await response.json();
+            resultDiv.innerHTML = `
+                <div class="room-found">
+                    <div>Room ID: ${roomId}</div>
+                    <div>Members: ${members.length}</div>
+                    <button onclick="joinRoom(${roomId})">Join Room</button>
+                </div>
+            `;
+        } else {
+            resultDiv.innerHTML = '<div class="room-not-found">Room not found</div>';
+        }
+    } catch (err) {
+        console.error('Search room error:', err);
+        resultDiv.innerHTML = '<div class="room-error">Search failed</div>';
     }
 }
 
-// Join Room (for Team-ups)
-function joinRoom(roomId) {
-    showModal('Join room feature coming soon!');
-    console.log('Joining room:', roomId);
-}
-
-// Render Rooms List
-function renderRooms(searchTerm = '') {
-    const roomsList = document.getElementById('roomsList');
-    if (!roomsList) return;
+async function joinRoom(roomId) {
+    const username = window.getCurrentUser();
     
-    const filtered = rooms.filter(r => 
-        r.name.toLowerCase().includes(searchTerm)
-    );
-    
-    if (filtered.length === 0) {
-        roomsList.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-muted);">No rooms found</div>';
-        return;
-    }
-    
-    roomsList.innerHTML = filtered.map(room => `
-        <div class="room-item" onclick="selectRoom(${room.id})">
-            <div class="room-item-name">${room.name}</div>
-            <div class="room-item-meta">
-                10 Members
-                <span class="room-status offline">Offline</span>
-            </div>
-        </div>
-    `).join('');
-}
-
-// Select Room (navigate to room page)
-function selectRoom(roomId) {
-    console.log('Selecting room:', roomId);
-    if (typeof navigateTo === 'function') {
-        navigateTo('room');
+    try {
+        const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
+        const response = await fetch(`${API_BASE}/rooms/${roomId}/invite`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            credentials: 'include',
+            body: JSON.stringify([username])
+        });
+        
+        if (response.ok) {
+            showModal('Successfully joined room!');
+            await loadUserRooms();
+            document.getElementById('roomIdInput').value = '';
+            document.getElementById('roomSearchResult').innerHTML = '';
+        }
+    } catch (err) {
+        console.error('Join room error:', err);
+        showModal('Failed to join room');
     }
 }
 
-// Render Room Dropdown
-function renderRoomDropdown() {
-    const dropdown = document.getElementById('selectRoomDropdown');
-    if (!dropdown) return;
+async function addMemberToRoom() {
+    const selectedRoom = document.getElementById('dropdownSelected').dataset.selectedRoom;
+    const username = document.getElementById('addMemberInput').value.trim();
     
-    if (rooms.length === 0) {
-        dropdown.innerHTML = '<option value="">No rooms available</option>';
-        return;
-    }
-    
-    dropdown.innerHTML = rooms.map(room => 
-        `<option value="${room.id}">${room.name}</option>`
-    ).join('');
-}
-
-// Render Team Members
-function renderTeamMembers() {
-    const membersList = document.getElementById('teamMembersList');
-    if (!membersList) return;
-    
-    if (allMembers.length === 0) {
-        membersList.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-muted);">No team members yet</div>';
-        return;
-    }
-    
-    membersList.innerHTML = allMembers.map(member => `
-        <div class="member-item">
-            <input type="checkbox" class="member-checkbox">
-            <div class="member-info">
-                <div class="member-name">${member.name}</div>
-                <div class="member-meta">Mutual rooms: ${member.mutualRooms.length}</div>
-            </div>
-        </div>
-    `).join('');
-}
-
-// Send Invite
-async function handleSendInvite() {
-    const dropdown = document.getElementById('selectRoomDropdown');
-    const usernameInput = document.getElementById('inviteUsernameInput');
-    
-    const roomId = dropdown.value;
-    const username = usernameInput.value.trim();
-    
-    if (!roomId) {
+    if (!selectedRoom) {
         showModal('Please select a room');
         return;
     }
@@ -364,38 +183,81 @@ async function handleSendInvite() {
     }
     
     try {
-        const response = await api.inviteUsers(roomId, [username]);
-        if (response && response.ok) {
-            showModal('Invite sent successfully!');
-            usernameInput.value = '';
+        const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
+        const response = await fetch(`${API_BASE}/rooms/${selectedRoom}/invite`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            credentials: 'include',
+            body: JSON.stringify([username])
+        });
+        
+        if (response.ok) {
+            showModal('Member added successfully!');
+            document.getElementById('addMemberInput').value = '';
         } else {
-            showModal('Failed to send invite');
+            showModal('Failed to add member');
         }
-    } catch (error) {
-        console.error('Error sending invite:', error);
-        showModal('Could not send invite');
+    } catch (err) {
+        console.error('Add member error:', err);
+        showModal('Connection error');
     }
 }
 
-// Show Modal
+function enterRoom(roomId) {
+    sessionStorage.setItem('currentRoomId', roomId);
+    window.navigateTo('room');
+}
+
 function showModal(message) {
     const modal = document.getElementById('confirmModal');
-    const modalMessage = document.getElementById('modalMessage');
+    const messageEl = document.getElementById('modalMessage');
+    messageEl.textContent = message;
+    modal.style.display = 'flex';
+}
+
+function initializeUI() {
+    const advancedToggle = document.getElementById('advancedToggle');
+    const settingsContent = document.getElementById('settingsContent');
+    const dropdownIcon = document.getElementById('dropdownIcon');
     
-    if (modal && modalMessage) {
-        modalMessage.textContent = message;
-        modal.style.display = 'flex';
-    }
+    advancedToggle.addEventListener('click', () => {
+        const isOpen = settingsContent.classList.toggle('open');
+        dropdownIcon.textContent = isOpen ? '▼' : '▶';
+    });
+    
+    document.getElementById('maxMembersCheck').addEventListener('change', (e) => {
+        document.getElementById('maxMembersInput').disabled = !e.target.checked;
+    });
+    
+    const dropdown = document.getElementById('dropdownSelected');
+    dropdown.addEventListener('click', () => {
+        document.getElementById('dropdownOptions').classList.toggle('show');
+    });
+    
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('#roomDropdown')) {
+            document.getElementById('dropdownOptions').classList.remove('show');
+        }
+    });
+    
+    document.getElementById('createRoomBtn').addEventListener('click', createRoom);
+    document.getElementById('searchRoomBtn').addEventListener('click', searchRoom);
+    document.getElementById('addMemberBtn').addEventListener('click', addMemberToRoom);
+    document.getElementById('modalOkBtn').addEventListener('click', () => {
+        document.getElementById('confirmModal').style.display = 'none';
+    });
 }
 
-// Cleanup
+window.enterRoom = enterRoom;
+window.joinRoom = joinRoom;
+
+displayUsername();
+loadUserRooms();
+initializeUI();
+
 window.cleanupPage = function() {
-    console.log('Cleaning up landing page');
+    console.log('Landing page cleanup');
 };
-
-// Auto-initialize
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initLanding);
-} else {
-    initLanding();
-}

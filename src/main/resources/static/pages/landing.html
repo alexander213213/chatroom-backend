@@ -1,5 +1,5 @@
 <body>
-    <!-- Top Bar -->
+    <!-- Top bar -->
     <header class="top-bar">
         <div class="profile-header">
             <div class="avatar">👨‍💻</div>
@@ -14,31 +14,36 @@
         </div>
     </header>
 
-    <!-- Main Content -->
+    <!-- Main content -->
     <div class="main-container">
-        <!-- Room Management Title (outside panels) -->
+        <!-- Room management title -->
         <h1 class="section-title">Room Management</h1>
         
         <div class="content-wrapper">
-            <!-- Left Side -->
+            <!-- Left side -->
             <div class="left-side">
-                <!-- Create Room Panel -->
-                <div class="panel create-room-panel">
+                <!-- Create room panel -->
+                <div class="create-room-panel">
                     <h2 class="panel-header">Create a Room</h2>
                     
                     <label class="input-label">Enter Room Name</label>
-                    <input type="text" id="roomNameInput" class="text-input" placeholder="">
+                    <input type="text" id="roomNameInput" class="text-input">
                     
                     <div class="advanced-settings">
-                        <div class="settings-header" id="advancedToggle">Advanced Settings ∧</div>
+                        <div class="settings-header" id="advancedToggle">
+                            <span class="dropdown-icon" id="dropdownIcon"></span>
+                            <span>Advanced Settings</span>
+                        </div>
                         <div class="settings-content" id="settingsContent">
                             <label class="checkbox-row">
                                 <input type="checkbox" id="maxMembersCheck">
+                                <span class="custom-checkbox"></span>
                                 <span>Set Maximum Members</span>
-                                <input type="number" id="maxMembersInput" class="inline-number" placeholder="# +" disabled>
+                                <input type="number" id="maxMembersInput" class="inline-number" placeholder="#" disabled>
                             </label>
                             <label class="checkbox-row">
                                 <input type="checkbox" id="adminOnlyCheck">
+                                <span class="custom-checkbox"></span>
                                 <span>Admin Only</span>
                             </label>
                         </div>
@@ -47,57 +52,77 @@
                     <button class="btn-create" id="createRoomBtn">Create Room</button>
                 </div>
 
-                <!-- Team-ups Section -->
-                <div class="panel teamups-panel">
+                <!-- Team-ups panel -->
+                <div class="teamups-panel">
                     <h2 class="panel-title">Team-ups</h2>
+                    
                     <label class="input-label">Search</label>
-                    <input type="text" id="roomIdInput" class="text-input" placeholder="Enter Room ID">
-                    <div id="roomSearchResult" class="search-result"></div>
+                    <div class="search-bar-wrapper">
+                        <div class="search-wrapper">
+                            <input type="text" id="roomIdInput" class="search-input" placeholder="Enter Room ID">
+                            <span class="search-icon"></span>
+                        </div>
+                        <button class="btn-search" id="searchRoomBtn">Join Room</button>
+                    </div>
+                    
+                    <div id="roomSearchResult" class="search-result">
+                        <!-- Search results will appear here -->
+                    </div>
                 </div>
             </div>
 
-            <!-- Right Side -->
-            <div class="right-side">
-                <!-- Your Rooms Section -->
-                <div class="panel your-rooms-panel">
-                    <h2 class="panel-title">Your Rooms</h2>
-                    <div class="search-wrapper">
-                        <input type="text" id="roomsSearch" class="search-input" placeholder="Enter room name">
+            <!-- Right side -->
+            <div class="right-side-wrapper">
+                <div class="right-side-top">
+                    <!-- Your rooms panel -->
+                    <div class="your-rooms-panel">
+                        <h2 class="panel-title">Your Rooms</h2>
+                        <div id="roomsList" class="rooms-list">
+                            <!-- Rooms will be populated here -->
+                        </div>
                     </div>
-                    <div id="roomsList" class="rooms-list">
-                        <!-- Rooms will be populated here -->
+
+                    <!-- Team members panel -->
+                    <div class="team-members-panel">
+                        <h2 class="panel-title">Team Members</h2>
+                        <div class="search-wrapper-members">
+                            <input type="text" id="membersSearch" class="search-input-members" placeholder="Enter Username">
+                            <span class="search-icon-members"></span>
+                        </div>
+                        <div id="teamMembersList" class="members-list">
+                            <!-- Team members will be populated here -->
+                        </div>
                     </div>
                 </div>
 
-                <!-- Team Members Section -->
-                <div class="panel team-members-panel">
-                    <h2 class="panel-title">Team Members</h2>
-                    <div id="teamMembersList" class="members-list">
-                        <!-- Team members will be populated here -->
-                    </div>
-                </div>
-
-                <!-- Invite Section -->
-                <div class="panel invite-panel">
-                    <div class="invite-row">
-                        <div class="invite-col">
+                <!-- Add member section -->
+                <div class="add-member-panel">
+                    <h2 class="panel-header">Add Members</h2>
+                    <div class="add-member-content">
+                        <div class="add-member-col">
                             <label class="input-label">Select a Room</label>
-                            <select id="selectRoomDropdown" class="dropdown">
-                                <option value=""></option>
-                            </select>
+                            <div class="custom-dropdown" id="roomDropdown">
+                                <div class="dropdown-selected" id="dropdownSelected">
+                                    <span class="dropdown-text">Choose a room</span>
+                                    <span class="dropdown-arrow" id="dropdownArrow"></span>
+                                </div>
+                                <div class="dropdown-options" id="dropdownOptions">
+                                    <!-- Options will be populated here -->
+                                </div>
+                            </div>
                         </div>
-                        <div class="invite-col">
-                            <label class="input-label">Invite Users</label>
-                            <input type="text" id="inviteUsernameInput" class="text-input" placeholder="Enter username">
+                        <div class="add-member-col">
+                            <label class="input-label">Add Member</label>
+                            <input type="text" id="addMemberInput" class="add-member-input" placeholder="Enter Username">
                         </div>
                     </div>
-                    <button class="btn-invite" id="sendInviteBtn">Send Invite</button>
+                    <button class="btn-add-member" id="addMemberBtn">Add Member</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Confirmation Modal -->
+    <!-- Confirmation modal -->
     <div id="confirmModal" class="modal" style="display: none;">
         <div class="modal-content">
             <p id="modalMessage">Room created successfully!</p>
