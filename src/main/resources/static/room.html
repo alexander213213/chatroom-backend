@@ -8,34 +8,10 @@
     <link rel="stylesheet" href="assets/css/room.css">
 </head>
 <body class="pixel-ui">
-    <!-- Top Bar -->
-    <header class="top-bar">
-        <div class="profile-header">
-            <div class="avatar">👨‍💻</div>
-            <div class="profile-name">
-                <div class="username" id="currentUserDisplay">Loading...</div>
-                <div class="view-profile" id="viewProfileBtn">View Profile ▼</div>
-            </div>
-        </div>
-        <div class="top-icons">
-            <button class="home-btn" id="deleteRoomBtn" style="display: none;">
-                <span class="home-icon">🗑️</span>
-                Delete Room
-            </button>
-            <button class="home-btn" id="logoutBtn">
-                <span class="home-icon">🚪</span>
-                Logout
-            </button>
-            <button class="home-btn" onclick="window.location.href='index.html'">
-                <span class="home-icon">🏠</span>
-                Home
-            </button>
-        </div>
-    </header>
-
+    <div include="components/navbar.html"></div>
     <!-- Main Workspace -->
     <main class="workspace">
-        <!-- Placeholder for Chat -->
+        <!-- Placeholder for Chat (shown when no room is selected) -->
         <div class="placeholder-box chat-placeholder visible">
             <div>Chat Window Closed<br>Select a room to start chatting</div>
         </div>
@@ -59,7 +35,7 @@
 
                 <div class="typing-indicator" id="typingIndicator" style="display: none;"></div>
 
-                <div class="chat-input" id="messageInputContainer" style="display: none;">
+                <div class="chat-input" id="messageInputContainer">
                     <div id="replyPreview" class="reply-preview" style="display: none;">
                         <div class="reply-preview-header">
                             <span id="replyText"></span>
@@ -176,4 +152,7 @@
     <script src="assets/js/websocket.js"></script>
     <script src="assets/js/room.js"></script>
 </body>
+<<<<<<< HEAD:frontend/pages/room.html
 </html>
+=======
+>>>>>>> 3beb15962c6e56707759603d680a440c91646f86:frontend/room.html

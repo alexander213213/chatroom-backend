@@ -8,82 +8,68 @@
     <link rel="stylesheet" href="assets/css/dashboard.css">
 </head>
 <body>
-    <!-- Top Bar -->
-    <header class="top-bar">
-        <div class="profile-header">
-            <div class="avatar">👨‍💻</div>
-            <div class="profile-name">
-                <div class="username">Loading...</div>
-                <div class="view-profile">View Profile ▼</div>
-            </div>
-        </div>
-        <div class="top-icons">
-            <button class="icon-btn" title="Notifications">🔔</button>
-            <button class="icon-btn" title="Home" onclick="window.location.href='index.html'">🏠</button>
-        </div>
-    </header>
-
+    <div include="components/navbar.html"></div>
     <!-- Main Content -->
     <div class="main-content">
         <div class="left-panel">
-            <!-- Profile Card -->
-            <div class="profile-card">
-                <div class="profile-image">PROFILE</div>
-                <div class="profile-details">
-                    <h2>Loading...</h2>
-                    <div class="profile-stats">
-                        <div class="profile-stat">Teams: 0</div>
-                        <div class="profile-stat">0 Connections</div>
-                    </div>
-                </div>
+        <!-- Profile Card -->
+        <div class="profile-card">
+            <div class="profile-image">PROFILE</div>
+            <div class="profile-details">
+            <h2>Loading...</h2>
+            <div class="profile-stats">
+                <div class="profile-stat">Teams: 0</div>
+                <div class="profile-stat">0 Connections</div>
             </div>
+            </div>
+        </div>
 
-            <!-- Featured Teams -->
-            <div class="featured-section">
-                <div class="section-title">Featured Teams</div>
-                <div class="teams-grid">
-                    <div class="team-card">
-                        <div class="team-info">
-                            <div class="team-name">Loading...</div>
-                            <div class="team-meta">Members: --</div>
-                            <div class="team-meta">Active: --</div>
-                        </div>
-                    </div>
-                    <div class="nav-arrows">
-                        <button class="arrow-btn">‹</button>
-                        <button class="arrow-btn">›</button>
-                    </div>
+        <!-- Featured Teams -->
+        <div class="featured-section">
+            <div class="section-title">Featured Teams</div>
+            <div class="teams-grid">
+            <div class="team-card">
+                <div class="team-info">
+                <div class="team-name">Loading...</div>
+                <div class="team-meta">Members: --</div>
+                <div class="team-meta">Active: --</div>
                 </div>
             </div>
+            <div class="nav-arrows">
+                <button class="arrow-btn">‹</button>
+                <button class="arrow-btn">›</button>
+            </div>
+            </div>
+        </div>
 
-            <!-- Recent Notes -->
-            <div class="files-section">
-                <div class="section-title">Recent Notes</div>
-                <div class="notes-area">
-                    <div class="notes-content">
-                        <div class="note-icon">📝</div>
-                        <div class="note-title">Loading...</div>
-                    </div>
-                </div>
-                <div class="filenav-arrows">
-                    <button class="arrow-btn">‹</button>
-                    <button class="arrow-btn">›</button>
-                </div>
+        <!-- Recent Notes -->
+        <div class="files-section">
+            <div class="section-title">Recent Notes</div>
+            <div class="notes-area">
+            <div class="notes-content">
+                <div class="note-icon">📝</div>
+                <div class="note-title">Loading...</div>
             </div>
+            </div>
+            <div class="filenav-arrows">
+            <button class="arrow-btn">‹</button>
+            <button class="arrow-btn">›</button>
+            </div>
+        </div>
         </div>
 
         <!-- Connections Panel & Logout Button-->
         <aside>
-            <div class="connections-panel">
-                <div class="connections-title">Connections</div>
-                <input type="text" class="search-box" placeholder="🔍 Search connections...">
-                <div class="connections-list">
-                    <div style="text-align: center; padding: 20px; color: #2a1810; opacity: 0.5;">
-                        Loading connections...
-                    </div>
-                </div>
+        <div class="connections-panel">
+            <div class="connections-title">Connections</div>
+            <input type="text" class="search-box" placeholder="🔍 Search connections..." value="">
+            <div class="connections-list">
+            <div style="text-align: center; padding: 20px; color: #2a1810; opacity: 0.5;">
+                Loading connections...
             </div>
-            <button class="logout-btn">Logout</button>
+            </div>
+        </div>
+        <button class="logout-btn">Logout</button>
         </aside>
     </div>
 

@@ -1,9 +1,8 @@
 <!DOCTYPE html>
 <head>
     <style>
-
 :root {
-    --page-title: 1.5rem; /*h1*/
+    --page-title: 2rem; /*h1*/
     --section-title: 1.125rem; /*h2*/
     --small-text: 0.875rem;
     --button: 1rem;
@@ -12,90 +11,10 @@
     --light-font-color: rgb(255, 247, 228);
 
 }
-
-/* TOP BAR */
-
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-}
-
-.top-bar {
-    height: 100px;
-    background: #DEA38B;
-    border-bottom: 3px solid #66506D;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 30px;
-    box-shadow: inset 0 -2px 0 #66506D;
-}
-
-.profile-header {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-}
-
-.avatar {
-    width: 60px;
-    height: 60px;
-    background: white;
-    border: 3px solid #66506D;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 32px;
-}
-
-.profile-name {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-}
-
-.username {
-    font-size: 20px;
-    font-weight: bold;
-    color: #66506D;
-}
-
-.view-profile {
-    font-size: 12px;
-    color: #66506D;
-    cursor: pointer;
-    text-decoration: underline;
-}
-
-.view-profile:hover {
-    color: #4A3A4D;
-}
-
-.top-icons {
-    display: flex;
-    gap: 15px;
-}
-
-.icon-btn {
-    width: 50px;
-    height: 50px;
-    background: #F5E6D3;
-    border: 3px solid #66506D;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    transition: transform 0.1s;
-}
-
-.icon-btn:hover {
-    transform: scale(1.05);
-}
-
-.icon-btn:active {
-    transform: scale(0.95);
 }
 
 /* MAIN CONTAINER */
@@ -103,19 +22,23 @@
 .main-container {
     padding: 1.875rem;
     min-height: calc(100vh - 6.25rem);
+    background-color: rgb(255, 230, 198);
 }
 
 .section-title {
     font-size: var(--page-title);
+    text-align: center;
     color: var(--dark-font-color);
     font-weight: bold;
-    margin-bottom: 0.625rem;
+    margin-bottom: 1rem;
 }
 
 .content-wrapper {
     display: flex;
-    gap: 0.9375rem;
-    height: calc(100vh - 12.5rem); 
+    gap: 1rem;
+    height: calc(100vh - 12.5rem);
+    justify-content: center;
+    margin: 0 auto;
 }
 
 /* CREATE A ROOM SECTION */
@@ -132,7 +55,7 @@
 }
 
 .panel-header {
-    font-size: 1.125rem; 
+    font-size: var(--section-title); 
     color: var(--light-font-color);
     font-weight: bold;
     margin-bottom: 0.625rem;
@@ -149,7 +72,7 @@
 
 /* Team Name Input */
 .text-input {
-    width: 100%;
+    width: 85%;
     height: 1.875rem; 
     border: none;
     outline: none;
@@ -228,7 +151,8 @@
     display: flex;
     gap: 0.625rem;
     margin-bottom: 0.5rem;
-        margin-top: -1.5rem;
+    margin-top: -1.6rem;
+    margin-left: -1.27rem;
     align-items: flex-start;
     justify-content: center;
     padding: 0 1.25rem;
@@ -242,7 +166,7 @@
 
 /* Search Input */
 .search-input {
-    width: 75%;
+    width: 86.5%;
     height: 1.75rem;
     border: none;
     outline: none;
@@ -250,7 +174,7 @@
     background-image: url('../resources/images/landing/inputs/search-bar.png');
     background-repeat: no-repeat;
     background-size: 100% 100%;
-    padding: 0.75rem 2.8125rem 0.75rem 0.9375rem;
+    padding: 0.75rem 2rem 0.75rem 1rem;
     font-family: 'Pixellari', monospace;
     font-size: var(--small-text);
     color: var(--dark-font-color);
@@ -267,7 +191,7 @@
 /* Search Icon */
 .search-icon {
     position: absolute;
-    right: 5.3125rem;
+    right: 3.5rem;
     top: 50%;
     transform: translateY(-50%);
     width: 1.25rem;
@@ -389,7 +313,50 @@
     min-height: 0;
 }
 
+/* Your Rooms Search */
+.search-wrapper-rooms {
+    position: relative;
+    margin-bottom: 0.625rem;
+}
+
+.search-input-rooms {
+    width: 100%;
+    height: 1.875rem;
+    border: none;
+    outline: none;
+    background-color: transparent;
+    background-image: url('../resources/images/landing/inputs/search-bar.png');
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    padding: 0.75rem 2rem 0.75rem 1rem;
+    font-family: 'Pixellari', monospace;
+    font-size: var(--small-text);
+    color: var(--dark-font-color);
+}
+
+.search-input-rooms:focus {
+    outline: none;
+}
+
+.search-input-rooms::placeholder {
+    color: var(--dark-font-color);
+}
+
+.search-icon-rooms {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1.25rem;
+    height: 1.25rem;
+    background-image: url('../resources/images/landing/icons/search_icon.png');
+    background-repeat: no-repeat;
+    background-size: contain;
+    pointer-events: none;
+}
+
 /* Rooms List (scrollable) */
+
 .rooms-list {
     flex: 1;
     overflow-y: auto;
@@ -526,7 +493,7 @@
     background-repeat: no-repeat;
     background-size: 100% 100%;
     padding: 1.25rem  1.25rem ;
-    margin-top: 0px;
+    margin-top: -1rem;
     flex-shrink: 0;
 }
 
@@ -549,7 +516,7 @@
 
 .dropdown-selected {
     width: 100%;
-    height: 2.8125rem;
+    height: 2rem;
     background-color: transparent;
     background-image: url('../resources/images/landing/inputs/insert_team-name_input-box.png');
     background-repeat: no-repeat;
@@ -624,7 +591,7 @@
 /* Add Member Input */
 .add-member-input {
     width: 100%;
-    height: 2.8125rem;
+    height: 2rem;
     border: none;
     outline: none;
     background-color: transparent;
@@ -732,7 +699,6 @@
     gap: 0px;
     max-width: 31.25rem;
     width: 100%;
-    flex: 1;
     height: calc(100vh - 12.5rem);
 }
 
@@ -742,14 +708,18 @@
     .content-wrapper {
         flex-direction: column;
         height: auto;
+        align-items: center;
     }
 
     .left-side {
         height: auto;
+        max-width: 100%;
     }
     .right-side-wrapper {
         height: auto;
         max-width: 75%;
+        flex: 0 0 auto;
+        width: auto;
     }
     
     .right-side-top {
@@ -780,8 +750,13 @@
     .content-wrapper {
         gap: 15px;
         height: auto;
+        align-items: center;
     }
 
+    .left-side {
+        max-width: 100%;
+        flex: 0 0 auto;
+    }
     .right-side-top {
         flex-direction: column;
         height: auto;
@@ -795,21 +770,7 @@
     </style>
 </head>
 <body>
-    <!-- Top Bar -->
-    <header class="top-bar">
-        <div class="profile-header">
-            <div class="avatar">👨‍💻</div>
-            <div class="profile-name">
-                <div class="username">Loading...</div>
-                <div class="view-profile">View Profile ▼</div>
-            </div>
-        </div>
-        <div class="top-icons">
-            <button class="icon-btn" title="Notifications">🔔</button>
-            <button class="icon-btn" title="Home">🏠</button>
-        </div>
-    </header>
-
+    <div include="components/navbar.html"></div>
     <!-- Main Content -->
     <div class="main-container">
         <!-- Room Management Title -->
@@ -834,10 +795,10 @@
                     <label class="input-label">Search</label>
                     <div class="search-bar-wrapper">
                         <div class="search-wrapper">
-                            <input type="text" id="roomIdInput" class="search-input" placeholder="Enter Room ID">
+                            <input type="text" id="roomIdInput" class="search-input" placeholder="Enter Room Name">
                             <span class="search-icon"></span>
                         </div>
-                        <button class="btn-search" id="searchRoomBtn">Search</button>
+                        <button class="btn-search" id="searchRoomBtn">Join</button>
                     </div>
                     
                     <div id="roomSearchResult" class="search-result">
@@ -857,6 +818,10 @@
                     <!-- Your Rooms Panel -->
                     <div class="your-rooms-panel">
                         <h2 class="panel-title">Your Rooms</h2>
+                        <div class="search-wrapper-rooms">
+                            <input type="text" id="roomsSearch" class="search-input-rooms" placeholder="Enter Room Name">
+                            <span class="search-icon-rooms"></span>
+                        </div>
                         <div id="roomsList" class="rooms-list">
                             <!-- Placeholder rooms for design testing -->
                             <div class="room-item">
@@ -926,12 +891,11 @@
                     </div>
                 </div>
 
-                <!-- Add Member Section (below Your Rooms and Team Members) -->
+                <!-- Add Member Section -->
                 <div class="add-member-panel">
                     <h2 class="panel-header">Add Members</h2>
                     <div class="add-member-content">
                         <div class="add-member-col">
-                            <label class="input-label">Select a Room</label>
                             <div class="custom-dropdown" id="roomDropdown">
                                 <div class="dropdown-selected" id="dropdownSelected">
                                     <span class="dropdown-text">Choose a room</span>
@@ -943,7 +907,6 @@
                             </div>
                         </div>
                         <div class="add-member-col">
-                            <label class="input-label">Add Member</label>
                             <input type="text" id="addMemberInput" class="add-member-input" placeholder="Enter Username">
                         </div>
                         <button class="btn-add-member" id="addMemberBtn">Add Member</button>
