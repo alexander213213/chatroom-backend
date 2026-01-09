@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MeeTeams - Room</title>
+    <link rel="stylesheet" href="global.css">
+    <link rel="stylesheet" href="assets/css/room.css">
+</head>
+<body class="pixel-ui">
+    <!-- Top Bar -->
+    <header class="top-bar">
+        <div class="profile-header">
+            <div class="avatar">👨‍💻</div>
+            <div class="profile-name">
+                <div class="username" id="currentUserDisplay">Loading...</div>
+                <div class="view-profile" id="viewProfileBtn">View Profile ▼</div>
+            </div>
+        </div>
+        <div class="top-icons">
+            <button class="home-btn" id="deleteRoomBtn" style="display: none;">
+                <span class="home-icon">🗑️</span>
+                Delete Room
+            </button>
+            <button class="home-btn" id="logoutBtn">
+                <span class="home-icon">🚪</span>
+                Logout
+            </button>
+            <button class="home-btn" onclick="window.location.href='index.html'">
+                <span class="home-icon">🏠</span>
+                Home
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="workspace">
+        <!-- Placeholder for Chat -->
+        <div class="placeholder-box chat-placeholder visible">
+            <div>Chat Window Closed<br>Select a room to start chatting</div>
+        </div>
+
+        <!-- Chat Window -->
+        <section class="chat-window window">
+            <div class="chat-main">
+                <div class="chat-titlebar">
+                    <div class="window-title" id="chatRoomTitle">Select a room</div>
+                    <div class="window-controls">
+                        <div class="window-btn" data-action="minimize-chat">−</div>
+                        <div class="window-btn" data-action="close-chat">✕</div>
+                    </div>
+                </div>
+
+                <div class="messages" id="messagesContainer">
+                    <div style="text-align: center; padding: 40px; color: var(--text-muted); font-size: 8px;">
+                        No messages yet. Start the conversation!
+                    </div>
+                </div>
+
+                <div class="typing-indicator" id="typingIndicator" style="display: none;"></div>
+
+                <div class="chat-input" id="messageInputContainer" style="display: none;">
+                    <div id="replyPreview" class="reply-preview" style="display: none;">
+                        <div class="reply-preview-header">
+                            <span id="replyText"></span>
+                            <button id="cancelReply" class="reply-preview-close">✕</button>
+                        </div>
+                    </div>
+                    
+                    <input type="file" id="fileInput" class="file-input-hidden" style="display: none;" />
+                    <button id="fileBtn" title="Upload File">📎</button>
+                    <input id="messageInput" type="text" placeholder="Type message..." />
+                    <button id="notesBtn" class="chat-icon-btn" title="Notes">📝</button>
+                    <button id="filesViewBtn" class="chat-icon-btn" title="Files">📁</button>
+                    <button id="sendBtn">➤</button>
+                </div>
+
+                <!-- Emoji Picker -->
+                <div id="emojiPicker" class="emoji-picker" style="display: none; position: fixed; z-index: 9999;">
+                    <div id="emojiGrid" class="emoji-grid"></div>
+                </div>
+            </div>
+
+            <!-- Team Info Sidebar -->
+            <div class="chat-sidebar">
+                <div class="members-panel">
+                    <div class="members-content">
+                        <div class="panel-section">
+                            <div class="section-title">Status</div>
+                            <div class="status-indicator">
+                                <div class="status-dot offline"></div>
+                                <span>Offline</span>
+                            </div>
+                        </div>
+
+                        <div class="panel-section">
+                            <div class="section-title">Team Members</div>
+                            <ul class="member-list" id="membersList">
+                                <li class="member-list-item">Loading members...</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Placeholder for Files -->
+        <div class="placeholder-box files-placeholder visible">
+            <div>Meeting Files<br>Open a chat to view files</div>
+        </div>
+
+        <!-- Files Panel -->
+        <aside class="files-panel window" style="display: none;">
+            <div class="window-titlebar">
+                <div class="window-title">Meeting Files</div>
+                <div class="window-controls">
+                    <div class="window-btn" data-action="minimize-files">−</div>
+                </div>
+            </div>
+            <div class="files-content" id="filesContent">
+                <div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 8px;">
+                    No files uploaded yet
+                </div>
+            </div>
+        </aside>
+
+        <!-- Rooms Panel -->
+        <aside class="rooms-panel window">
+            <div class="window-titlebar">
+                <div class="window-title">Rooms</div>
+                <div class="window-controls">
+                    <div class="window-btn" data-action="minimize-rooms">−</div>
+                </div>
+            </div>
+            <div class="rooms-content" id="roomsContent">
+                <div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 8px;">
+                    Loading rooms...
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <!-- Notes Modal -->
+    <div id="notesModal" class="modal-overlay notes-modal">
+        <div class="modal-content notes-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Room Notes</h3>
+                <button onclick="closeModal('notesModal')" class="modal-close-btn">✕</button>
+            </div>
+            <div class="notes-list" id="notesList">
+                <div style="text-align: center; padding: 20px; color: var(--text-muted);">No notes yet</div>
+            </div>
+            <div class="notes-input-area">
+                <input type="text" id="noteInput" placeholder="Add a note..." class="notes-input">
+                <button id="addNoteBtn" class="add-note-btn">Add</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Files View Modal -->
+    <div id="filesViewModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Room Files</h3>
+                <button onclick="closeModal('filesViewModal')" class="modal-close-btn">✕</button>
+            </div>
+            <div id="filesListModal" class="files-list-modal" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; padding: 15px; max-height: 400px; overflow-y: auto;">
+                <div style="text-align: center; padding: 20px; color: var(--text-muted);">No files uploaded</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.5.1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <script src="assets/js/auth-check.js"></script>
+    <script src="assets/js/websocket.js"></script>
+    <script src="assets/js/room.js"></script>
+</body>
+</html>
