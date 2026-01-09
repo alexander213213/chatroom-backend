@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import net.vornyx.chatroom.util.Operation;
 
 @Getter
 @Setter
@@ -12,7 +13,9 @@ import lombok.Setter;
 @NoArgsConstructor
 @Builder
 public class NoteDto {
+    private Long id;
     private Integer roomId;
     private String username;
+    private Operation type;
     private String content;
 }

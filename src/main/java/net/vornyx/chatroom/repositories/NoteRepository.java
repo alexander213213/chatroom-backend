@@ -10,6 +10,7 @@ import net.vornyx.chatroom.entities.Note;
 public interface NoteRepository extends JpaRepository<Note, Long> {
 
     // Get all Notes in a room
+    Note findNoteById(Long id);
     List<Note> findByNoteId_RoomId(Integer roomId);
 
     // Get all Notes from a specific user
@@ -21,6 +22,8 @@ public interface NoteRepository extends JpaRepository<Note, Long> {
     List<Note> findByNoteId_RoomIdOrderByIdDesc(Integer roomId, Pageable pageable);
 
     List<Note> findByNoteId_RoomIdAndIdLessThanOrderByIdDesc(Integer roomId, Integer id, Pageable pageable);
+
+    void deleteById(Long id);
 
     void deleteAllByNoteId_RoomId(Integer roomId);
 }

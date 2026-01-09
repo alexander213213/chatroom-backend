@@ -114,11 +114,27 @@ public class ChatWebSocketController {
     @MessageMapping("/rooms/{roomId}/note")
     public void note(@AuthenticationPrincipal User sender, @Payload NoteDto noteDto, @DestinationVariable Integer roomId) {
         roomRepository.findById(roomId).orElseThrow(() -> new RuntimeException("Room not found"));
-        User user = userRepository.findByUsername(noteDto.getUsername()).orElseThrow(() -> new RuntimeException("User not found"));
-        NoteId noteId = new NoteId(user.getId(), roomId);
-        Note note = new Note(noteId, noteDto.getContent());
-        noteRepository.save(note);
-        messagingTemplate.convertAndSend("/topic/" + roomId + "/notes", noteDto);
+        
+        if (noteDto.getType() == Operation.POST || noteDto.getType() == Operation.UPDATE) {
+            User user = userRepository.findByUsername(noteDto.getUsername()).orElseThrow(() -> new RuntimeException("User not found"));
+            NoteId noteId = new NoteId(user.getId(), roomId);
+            Note note = new Note();
+            note.setNoteId(noteId);
+            note.setContent(noteDto.getContent());
+            note.setCreated_at(LocalDateTime.now());
+            
+            if (noteDto.getType() == Operation.UPDATE) {
+                note.setId(noteDto.getId());
+            }
+            
+            Note savedNote = noteRepository.save(note);
+            noteDto.setId(savedNote.getId());
+            messagingTemplate.convertAndSend("/topic/" + roomId + "/notes", noteDto);
+            
+        } else if (noteDto.getType() == Operation.DELETE) {
+            noteRepository.deleteById(noteDto.getId());
+            messagingTemplate.convertAndSend("/topic/" + roomId + "/notes", noteDto);
+        }
     }
 
 }

@@ -4,4 +4,5 @@ public enum Operation {
     POST,
     UPDATE,
     DELETE,
+    NONE
 }

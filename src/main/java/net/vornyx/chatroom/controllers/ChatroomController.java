@@ -34,6 +34,7 @@ import net.vornyx.chatroom.repositories.ReactionRepository;
 import net.vornyx.chatroom.repositories.RoomMemberRepository;
 import net.vornyx.chatroom.repositories.RoomRepository;
 import net.vornyx.chatroom.repositories.UserRepository;
+import net.vornyx.chatroom.util.Operation;
 
 @Transactional
 @RestController
@@ -191,7 +192,7 @@ class ChatroomController {
                         .orElseThrow(() -> new RuntimeException("User not found"));
 
             
-                NoteDto response = new NoteDto(roomId, noteUser.getUsername(), Note.getContent());
+                NoteDto response = new NoteDto(Note.getId(),roomId, noteUser.getUsername(), Operation.NONE, Note.getContent());
                 return response;
             })
             .toList();
