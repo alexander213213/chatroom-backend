@@ -1,10 +1,10 @@
 <div class="auth" id="login">
     <div class="login_container">
         <div class="upper_box">
-            <img src="/" alt="Meerkat - MeeTeams Logo">
+            <img src="resources\images\Meeteams Logo transparent.png" alt="Meerkat - MeeTeams Logo" class="logo">
         </div>
         <h1 class="header">Login</h1>
-        <p>Welcome back! Get started by logging into your account</p>
+        <p class="upper_text">Welcome back! Get started by logging into your account</p>
         
         <form>
             <input class="form_holder" type="text" name="username" placeholder="Username" required>
@@ -31,7 +31,7 @@
         <video autoplay loop muted playsinline class="background-video">
             <source src="resources\images\Phuc ass character select.mp4" type="video/mp4">
         </video>
-    </div>
+    </div> 
 </div>
 
 <div class="auth" id="signup">
@@ -59,27 +59,23 @@
         </div>
         
         <div class="lower_box">
-            <img src="/" alt="Meerkat - MeeTeams Logo">
+            <img src="resources\images\Meeteams Logo transparent.png" alt="Meerkat - MeeTeams Logo" class="logo">
         </div>
     </div>
 </div>
 
 <div id="toastContainer"></div>
 
-<!-- Character Select Section (Hidden by default) -->
-<div class="auth" id="characterSelect" style="display: none;">
-    <!-- Video Background -->
+<div class="auth" id="characterSelect">
     <video autoplay loop muted playsinline class="character-select-video">
         <source src="resources/images/1228.mp4" type="video/mp4">
     </video>
-    
-    <!-- Content Container -->
+
     <div class="character_select_container">
         <h1 class="header character-header">Choose Your Character</h1>
         
         <div class="character_carousel_wrapper">
             <button class="carousel-nav prev" id="prevChar">‹</button>
-            
             <div class="character_carousel">
                 <div class="carousel-track">
                     <div class="character-slide" data-character-id="default">
@@ -123,7 +119,6 @@
                     </div>
                 </div>
             </div>
-            
             <button class="carousel-nav next" id="nextChar">›</button>
         </div>
         

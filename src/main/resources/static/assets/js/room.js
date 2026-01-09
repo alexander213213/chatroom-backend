@@ -1,3 +1,4 @@
+const API_BASE = window.location.origin;
 let currentRoomId = null;
 let currentRoomName = '';
 let currentRoomOwnerId = null;

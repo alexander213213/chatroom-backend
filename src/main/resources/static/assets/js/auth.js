@@ -29,10 +29,70 @@ function switchToLogin() {
 function showCharacterSelect() {
     document.getElementById('signup').style.display = 'none';
     document.getElementById('characterSelect').style.display = 'flex';
-    initializeCharacterCarousel();
+    //initializeCharacterCarousel();
+    setTimeout(() => {
+        initializeCharacterCarousel();
+    }, 50);
 }
 
+//add ko lang pre di kasi nagana yung buttons niya
+let carouselCleanup = null;
+
 function initializeCharacterCarousel() {
+    const track = document.querySelector('.carousel-track');
+    const slides = document.querySelectorAll('.character-slide');
+    const prevBtn = document.getElementById('prevChar');
+    const nextBtn = document.getElementById('nextChar');
+    if (carouselCleanup) carouselCleanup();
+
+    let currentIndex = 0;
+
+    let slideWidth = slides[0].offsetWidth;
+    if (slideWidth === 0) {
+        slideWidth = 448;
+    }
+    slideWidth += 20;
+    
+    function updateCarousel() {
+        track.style.transform = `translateX(-${currentIndex * slideWidth}px)`;
+        slides.forEach((slide, idx) => {
+            slide.classList.toggle('active', idx === currentIndex);
+        });
+        if(slides[currentIndex]) {
+            selectedCharacter = slides[currentIndex].dataset.characterId;
+        }
+    }
+    
+    const handlePrev = () => {
+        currentIndex = currentIndex > 0 ? currentIndex - 1 : slides.length - 1;
+        updateCarousel();
+    };
+
+    const handleNext = () => {
+        currentIndex = currentIndex < slides.length - 1 ? currentIndex + 1 : 0;
+        updateCarousel();
+    };
+
+    const handleSlideClick = (idx) => {
+        currentIndex = idx;
+        updateCarousel();
+    };
+
+    prevBtn.addEventListener('click', handlePrev);
+    nextBtn.addEventListener('click', handleNext);
+    slides.forEach((slide, idx) => {
+        slide.addEventListener('click', () => handleSlideClick(idx));
+    });
+    
+    carouselCleanup = () => {
+        prevBtn.removeEventListener('click', handlePrev);
+        nextBtn.removeEventListener('click', handleNext);
+    };
+
+    updateCarousel();
+}
+
+/*function initializeCharacterCarousel() {
     const track = document.querySelector('.carousel-track');
     const slides = document.querySelectorAll('.character-slide');
     const prevBtn = document.getElementById('prevChar');
@@ -67,7 +127,7 @@ function initializeCharacterCarousel() {
     });
     
     updateCarousel();
-}
+}*/
 
 async function handleLogin(e) {
     e.preventDefault();
@@ -189,6 +249,9 @@ document.getElementById('signup').querySelector('form').addEventListener('submit
 document.querySelector('.signup_btn').addEventListener('click', switchToSignup);
 document.querySelector('.log_btn').addEventListener('click', switchToLogin);
 document.getElementById('selectCharacterBtn').addEventListener('click', handleCharacterSelect);
+if (getComputedStyle(document.getElementById('characterSelect')).display !== 'none') {
+    initializeCharacterCarousel();
+}
 
 window.cleanupPage = function() {
     console.log('Auth page cleanup');

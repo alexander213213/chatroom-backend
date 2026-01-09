@@ -30,7 +30,7 @@ const pages = {
         js: 'assets/js/room.js'
     }
 };
-const DEFAULT_PAGE = 'auth'; //this is the default page
+const DEFAULT_PAGE = 'landing'; //this is the default page
 const PAGES_WITHOUT_COMPONENTS = ['auth']; //no navbar & footer
 
 //Dynamic URL
