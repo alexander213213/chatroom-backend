@@ -8,11 +8,120 @@
     --light-font-color: rgb(255, 247, 228);
 
 }
+
+html {
+    font-size: 100%; 
+}
 * {
-    margin: 0;
-    padding: 0;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+body {
+  font-family: Pixellari;
+  background: #654E66;
+  color: #2a1810;
+  overflow-x: hidden;
+  font-size: 1rem;
+}
+:root {
+  --bg-panel: #d4a084;
+  --bg-window: #f5d6bc;
+  --border-dark: #8b5a3c;
+  --border-light: #f9e8d8;
+  --text-main: #2a1810;
+  --text-muted: #9c6b4e;
+  --mint: #b8e6d5;
+  --cream: #f5d6bc;
+}
+.top-bar {
+    height: 5rem; 
+    background: var(--bg-panel);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 1.875rem; 
+    box-shadow: inset 0 -0.125rem 0 var(--border-dark);
     box-sizing: border-box;
 }
+.profile-header {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem; 
+}
+.avatar {
+    width: 3.75rem;
+    height: 3.75rem;
+    background: white;
+    border: 0.1875rem solid var(--border-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem; 
+    border-radius: 0.25rem;
+}
+.avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 0.1rem;
+}
+.profile-name {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3125rem;
+}
+.username {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: var(--text-main);
+}
+.view-profile {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+.view-profile a {
+    color: var(--text-muted);
+    text-decoration: underline;
+}
+.view-profile a:hover {
+    color: var(--text-main);
+}
+.top-icons {
+    display: flex;
+    gap: 0.9375rem; 
+}
+.icon-btn {
+    width: 3.125rem;
+    height: 3.125rem;
+    background: var(--bg-window);
+    border: 0.1875rem solid var(--border-dark);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem; 
+    transition: transform 0.1s;
+    text-decoration: none;
+    border-radius: 0.25rem;
+}
+.icon-btn img {
+    width: 60%; 
+    height: auto;
+    display: block;
+}
+.icon-btn:hover {
+    transform: scale(1.05);
+    background: #ffe4cd;
+}
+.icon-btn:active {
+    transform: scale(0.95);
+}
+
 
 /* MAIN CONTAINER */
 
