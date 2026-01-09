@@ -125,6 +125,7 @@ public class FileStorageService {
             throw new IOException("Avatar not found for user: " + username, e);
         }
     }
+    
 
     /**
      * Delete attachment from room

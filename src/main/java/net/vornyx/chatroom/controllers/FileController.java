@@ -2,6 +2,7 @@ package net.vornyx.chatroom.controllers;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.servlet.http.HttpServletRequest;
+import net.vornyx.chatroom.dto.FileMetadata;
 import net.vornyx.chatroom.util.FileStorageService;
 
 @RestController
@@ -66,6 +68,29 @@ public class FileController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Failed to upload file: " + e.getMessage()));
+        }
+    }
+    /**
+     * Get list of all attachments in a specific room
+     */
+    @GetMapping("/rooms/{roomNum}/attachments")
+    public ResponseEntity<?> listAttachments(
+            @PathVariable Long roomNum,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        
+        try {
+            List<FileMetadata> attachments = fileStorageService.listAttachments(roomNum);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("room_num", roomNum);
+            response.put("attachments", attachments);
+            response.put("count", attachments.size());
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to list attachments: " + e.getMessage()));
         }
     }
 
