@@ -1,7 +1,5 @@
 package net.vornyx.chatroom.controllers;
 
-import java.time.LocalDateTime;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -64,7 +62,6 @@ public class ChatWebSocketController {
             User user = userRepository.findByUsername(messageDto.getUsername()).orElseThrow(() -> new RuntimeException("User not found"));
             MessageId messageId = new MessageId(user.getId(), roomId);
             message.setMessageId(messageId);
-            message.setCreated_at(LocalDateTime.now());
             if (messageDto.getType() == Operation.UPDATE) {
                 message.setId(messageDto.getId());
             }
@@ -121,7 +118,6 @@ public class ChatWebSocketController {
             Note note = new Note();
             note.setNoteId(noteId);
             note.setContent(noteDto.getContent());
-            note.setCreated_at(LocalDateTime.now());
             
             if (noteDto.getType() == Operation.UPDATE) {
                 note.setId(noteDto.getId());
