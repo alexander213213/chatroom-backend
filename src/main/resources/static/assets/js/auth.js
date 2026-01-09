@@ -1,81 +1,65 @@
 const API_BASE = window.location.origin;
-
 let selectedCharacter = 'default';
-let stompClient = null;
 
-// Debug logging
-function debugLog(section, message, data = null) {
-    const timestamp = new Date().toISOString();
-    console.log(`[${timestamp}] [AUTH-${section}] ${message}`, data || '');
-}
-
-// Auth guard - redirect if already logged in
-function authGuard() {
-    const authToken = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
-    if (authToken) {
-        debugLog('GUARD', 'User already authenticated, redirecting to landing');
-        window.location.href = 'landing.html';
-    }
-}
-
-// Toast notification
 function showToast(message, type = 'success') {
     const container = document.getElementById('toastContainer');
+    if (!container) return;
+    
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     toast.textContent = message;
     toast.style.cssText = `
         padding: 12px 24px;
-        margin-bottom: 10px;
+        margin: 8px 0;
         border-radius: 4px;
         background: ${type === 'success' ? '#4caf50' : '#f44336'};
         color: white;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-        animation: slideIn 0.3s ease;
+        font-family: Pixellari;
+        opacity: 0;
+        transition: opacity 0.3s;
     `;
-    container.appendChild(toast);
     
-    setTimeout(() => toast.classList.add('show'), 10);
+    container.appendChild(toast);
+    setTimeout(() => toast.style.opacity = '1', 10);
     setTimeout(() => {
-        toast.classList.remove('show');
+        toast.style.opacity = '0';
         setTimeout(() => toast.remove(), 300);
     }, 3000);
 }
 
 function switchToSignup() {
-    debugLog('SWITCH', 'Switching to signup form');
     document.getElementById('login').style.display = 'none';
     document.getElementById('signup').style.display = 'flex';
 }
 
 function switchToLogin() {
-    debugLog('SWITCH', 'Switching to login form');
     document.getElementById('signup').style.display = 'none';
     document.getElementById('login').style.display = 'flex';
 }
 
 function showCharacterSelect() {
-    debugLog('CHARACTER', 'Showing character selection');
     document.getElementById('signup').style.display = 'none';
     document.getElementById('characterSelect').style.display = 'flex';
     initializeCharacterCarousel();
 }
 
 function initializeCharacterCarousel() {
-    debugLog('CAROUSEL', 'Initializing character carousel');
     const track = document.querySelector('.carousel-track');
     const slides = document.querySelectorAll('.character-slide');
     const prevBtn = document.getElementById('prevChar');
     const nextBtn = document.getElementById('nextChar');
     
+    if (!track || !slides.length || !prevBtn || !nextBtn) return;
+    
     let currentIndex = 0;
+    const slideWidth = slides[0].offsetWidth + 20;
     
     function updateCarousel() {
+        track.style.transform = `translateX(-${currentIndex * slideWidth}px)`;
         slides.forEach((slide, idx) => {
             slide.classList.toggle('active', idx === currentIndex);
         });
         selectedCharacter = slides[currentIndex].dataset.characterId;
-        debugLog('CAROUSEL', 'Character selected', selectedCharacter);
     }
     
     prevBtn.addEventListener('click', () => {
@@ -100,8 +84,6 @@ function initializeCharacterCarousel() {
 
 async function handleLogin(e) {
     e.preventDefault();
-    debugLog('LOGIN', '=== ATTEMPTING LOGIN ===');
-    
     const form = e.target;
     const username = form.username.value.trim();
     const password = form.password.value;
@@ -112,19 +94,12 @@ async function handleLogin(e) {
         return;
     }
     
-    debugLog('LOGIN', 'Credentials', { username, keepLoggedIn });
-    
     try {
         const response = await fetch(`${API_BASE}/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password }),
             credentials: 'include'
-        });
-        
-        debugLog('LOGIN', 'Response', {
-            status: response.status,
-            ok: response.ok
         });
         
         if (response.ok) {
@@ -135,35 +110,21 @@ async function handleLogin(e) {
             if (keepLoggedIn) {
                 localStorage.setItem('authToken', token);
                 localStorage.setItem('rememberedUser', username);
-                debugLog('LOGIN', 'Saved to localStorage for persistent login');
             }
             
-            // Connect WebSocket
-            connectWebSocket(token);
-            
             showToast('Login successful!');
-            debugLog('LOGIN', 'Login successful, redirecting to landing');
-            
-            setTimeout(() => {
-                window.location.href = 'landing.html';
-            }, 500);
+            setTimeout(() => window.location.href = 'index.html', 500);
         } else {
             showToast('Invalid username or password', 'error');
-            debugLog('LOGIN', 'Login failed', response.status);
         }
     } catch (err) {
-        debugLog('LOGIN', 'EXCEPTION', {
-            error: err.message,
-            stack: err.stack
-        });
+        console.error('Login error:', err);
         showToast('Connection error', 'error');
     }
 }
 
 async function handleSignup(e) {
     e.preventDefault();
-    debugLog('SIGNUP', '=== ATTEMPTING SIGNUP ===');
-    
     const form = e.target;
     const username = form.username.value.trim();
     const password = form.password.value;
@@ -178,8 +139,6 @@ async function handleSignup(e) {
         return;
     }
     
-    debugLog('SIGNUP', 'Registration data', { username });
-    
     try {
         const response = await fetch(`${API_BASE}/auth/register`, {
             method: 'POST',
@@ -187,36 +146,23 @@ async function handleSignup(e) {
             body: JSON.stringify({ username, password })
         });
         
-        debugLog('SIGNUP', 'Response', {
-            status: response.status,
-            ok: response.ok
-        });
-        
         if (response.ok) {
             sessionStorage.setItem('pendingUsername', username);
             sessionStorage.setItem('pendingPassword', password);
             showToast('Registration successful! Choose your character');
-            debugLog('SIGNUP', 'Registration successful');
             setTimeout(showCharacterSelect, 500);
         } else if (response.status === 409) {
             showToast('Username already exists', 'error');
-            debugLog('SIGNUP', 'Username conflict');
         } else {
             showToast('Registration failed', 'error');
-            debugLog('SIGNUP', 'Registration failed', response.status);
         }
     } catch (err) {
-        debugLog('SIGNUP', 'EXCEPTION', {
-            error: err.message,
-            stack: err.stack
-        });
+        console.error('Signup error:', err);
         showToast('Connection error', 'error');
     }
 }
 
 async function handleCharacterSelect() {
-    debugLog('CHARACTER', '=== CHARACTER SELECTED ===', selectedCharacter);
-    
     const username = sessionStorage.getItem('pendingUsername');
     const password = sessionStorage.getItem('pendingPassword');
     
@@ -242,66 +188,26 @@ async function handleCharacterSelect() {
             sessionStorage.removeItem('pendingUsername');
             sessionStorage.removeItem('pendingPassword');
             
-            // Connect WebSocket
-            connectWebSocket(token);
-            
             showToast('Welcome to MeeTeams!');
-            debugLog('CHARACTER', 'Auto-login successful, redirecting');
-            
-            setTimeout(() => {
-                window.location.href = 'landing.html';
-            }, 500);
+            setTimeout(() => window.location.href = 'index.html', 500);
         }
     } catch (err) {
-        debugLog('CHARACTER', 'EXCEPTION', {
-            error: err.message,
-            stack: err.stack
-        });
+        console.error('Character select error:', err);
         showToast('Connection error', 'error');
     }
 }
 
-function connectWebSocket(token) {
-    debugLog('WEBSOCKET', 'Connecting to WebSocket');
-    
-    if (typeof SockJS === 'undefined' || typeof Stomp === 'undefined') {
-        debugLog('WEBSOCKET', 'ERROR: Libraries not loaded');
-        return;
-    }
-    
-    try {
-        const socket = new SockJS(`${window.location.origin}/ws`);
-        stompClient = Stomp.over(socket);
-        stompClient.debug = null;
-        
-        stompClient.connect({}, 
-            () => {
-                debugLog('WEBSOCKET', '✓ Connected successfully');
-            },
-            (error) => {
-                debugLog('WEBSOCKET', 'ERROR: Connection failed', error);
-            }
-        );
-    } catch (err) {
-        debugLog('WEBSOCKET', 'EXCEPTION', {
-            error: err.message,
-            stack: err.stack
-        });
-    }
-}
-
-// Initialize
+// Setup event listeners
 document.addEventListener('DOMContentLoaded', () => {
-    debugLog('INIT', 'Auth page loaded');
-    authGuard();
+    const loginForm = document.querySelector('#login form');
+    const signupForm = document.querySelector('#signup form');
+    const signupBtn = document.querySelector('.signup_btn');
+    const loginBtn = document.querySelector('.log_btn');
+    const selectCharBtn = document.getElementById('selectCharacterBtn');
     
-    document.getElementById('loginForm').addEventListener('submit', handleLogin);
-    document.getElementById('signupForm').addEventListener('submit', handleSignup);
-    document.getElementById('switchToSignup').addEventListener('click', switchToSignup);
-    document.getElementById('switchToLogin').addEventListener('click', switchToLogin);
-    document.getElementById('selectCharacterBtn').addEventListener('click', handleCharacterSelect);
-    
-    debugLog('INIT', 'Event listeners attached');
+    if (loginForm) loginForm.addEventListener('submit', handleLogin);
+    if (signupForm) signupForm.addEventListener('submit', handleSignup);
+    if (signupBtn) signupBtn.addEventListener('click', switchToSignup);
+    if (loginBtn) loginBtn.addEventListener('click', switchToLogin);
+    if (selectCharBtn) selectCharBtn.addEventListener('click', handleCharacterSelect);
 });
-
-debugLog('INIT', '✓ Auth.js loaded');

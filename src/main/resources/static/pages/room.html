@@ -3,11 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Room - MeeTeams</title>
-    <link rel="stylesheet" href="../global.css">
-    <link rel="stylesheet" href="../assets/css/room.css">
-    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.5.1/dist/sockjs.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <title>MeeTeams - Room</title>
+    <link rel="stylesheet" href="global.css">
+    <link rel="stylesheet" href="assets/css/room.css">
 </head>
 <body class="pixel-ui">
     <!-- Top Bar -->
@@ -28,7 +26,7 @@
                 <span class="home-icon">🚪</span>
                 Logout
             </button>
-            <button class="home-btn" id="homeBtn">
+            <button class="home-btn" onclick="window.location.href='index.html'">
                 <span class="home-icon">🏠</span>
                 Home
             </button>
@@ -37,7 +35,7 @@
 
     <!-- Main Workspace -->
     <main class="workspace">
-        <!-- Placeholder for Chat (shown when no room is selected) -->
+        <!-- Placeholder for Chat -->
         <div class="placeholder-box chat-placeholder visible">
             <div>Chat Window Closed<br>Select a room to start chatting</div>
         </div>
@@ -172,6 +170,10 @@
         </div>
     </div>
 
-    <script src="../assets/js/room.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.5.1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <script src="assets/js/auth-check.js"></script>
+    <script src="assets/js/websocket.js"></script>
+    <script src="assets/js/room.js"></script>
 </body>
 </html>

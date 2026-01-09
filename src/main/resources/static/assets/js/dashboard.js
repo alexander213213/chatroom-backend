@@ -7,7 +7,8 @@ function displayUsername() {
     document.querySelectorAll('.username').forEach(el => {
         el.textContent = username;
     });
-    document.querySelector('.profile-details h2').textContent = username;
+    const profileHeader = document.querySelector('.profile-details h2');
+    if (profileHeader) profileHeader.textContent = username;
 }
 
 async function loadDashboardData() {
@@ -64,6 +65,7 @@ async function loadConnections() {
 
 function displayFeaturedTeams() {
     const teamsGrid = document.querySelector('.teams-grid');
+    if (!teamsGrid) return;
     
     if (userRooms.length === 0) {
         teamsGrid.querySelector('.team-card').innerHTML = `
@@ -76,13 +78,19 @@ function displayFeaturedTeams() {
     }
     
     const featuredRoom = userRooms[0];
-    teamsGrid.querySelector('.team-name').textContent = featuredRoom.name;
-    teamsGrid.querySelector('.team-meta:first-of-type').textContent = `Room ID: ${featuredRoom.id}`;
-    teamsGrid.querySelector('.team-meta:last-of-type').textContent = featuredRoom.description || 'No description';
+    const teamName = teamsGrid.querySelector('.team-name');
+    const teamMetas = teamsGrid.querySelectorAll('.team-meta');
+    
+    if (teamName) teamName.textContent = featuredRoom.name;
+    if (teamMetas.length >= 2) {
+        teamMetas[0].textContent = `Room ID: ${featuredRoom.id}`;
+        teamMetas[1].textContent = featuredRoom.description || 'No description';
+    }
 }
 
 function displayConnections() {
     const connectionsList = document.querySelector('.connections-list');
+    if (!connectionsList) return;
     
     if (connections.length === 0) {
         connectionsList.innerHTML = `
@@ -95,15 +103,18 @@ function displayConnections() {
     
     connectionsList.innerHTML = connections.map(username => `
         <div class="connection-item">
-            <div class="connection-avatar">👤</div>
+            <div class="connection-profile">👤</div>
             <div class="connection-name">${username}</div>
         </div>
     `).join('');
 }
 
 function updateStats() {
-    document.querySelector('.profile-stat:first-child').textContent = `Teams: ${userRooms.length}`;
-    document.querySelector('.profile-stat:last-child').textContent = `${connections.length} Connections`;
+    const stats = document.querySelectorAll('.profile-stat');
+    if (stats.length >= 2) {
+        stats[0].textContent = `Teams: ${userRooms.length}`;
+        stats[1].textContent = `${connections.length} Connections`;
+    }
 }
 
 function filterConnections(searchTerm) {
@@ -112,6 +123,7 @@ function filterConnections(searchTerm) {
     );
     
     const connectionsList = document.querySelector('.connections-list');
+    if (!connectionsList) return;
     
     if (filtered.length === 0) {
         connectionsList.innerHTML = `
@@ -124,7 +136,7 @@ function filterConnections(searchTerm) {
     
     connectionsList.innerHTML = filtered.map(username => `
         <div class="connection-item">
-            <div class="connection-avatar">👤</div>
+            <div class="connection-profile">👤</div>
             <div class="connection-name">${username}</div>
         </div>
     `).join('');
@@ -132,29 +144,31 @@ function filterConnections(searchTerm) {
 
 function initializeUI() {
     const searchBox = document.querySelector('.search-box');
-    searchBox.addEventListener('input', (e) => {
-        filterConnections(e.target.value);
-    });
+    if (searchBox) {
+        searchBox.addEventListener('input', (e) => {
+            filterConnections(e.target.value);
+        });
+    }
     
-    document.querySelector('.logout-btn').addEventListener('click', () => {
-        if (confirm('Are you sure you want to logout?')) {
-            window.logout();
-        }
-    });
+    const logoutBtn = document.querySelector('.logout-btn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            if (confirm('Are you sure you want to logout?')) {
+                window.logout();
+            }
+        });
+    }
     
-    document.querySelector('.icon-btn[title="Home"]').addEventListener('click', () => {
-        window.navigateTo('landing');
-    });
-    
-    document.querySelector('.view-profile').addEventListener('click', () => {
-        alert('Profile feature coming soon!');
-    });
+    const viewProfile = document.querySelector('.view-profile');
+    if (viewProfile) {
+        viewProfile.addEventListener('click', () => {
+            alert('Profile feature coming soon!');
+        });
+    }
 }
 
-displayUsername();
-loadDashboardData();
-initializeUI();
-
-window.cleanupPage = function() {
-    console.log('Dashboard page cleanup');
-};
+document.addEventListener('DOMContentLoaded', () => {
+    displayUsername();
+    loadDashboardData();
+    initializeUI();
+});
