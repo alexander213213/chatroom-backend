@@ -1,5 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Landing - MeeTeams</title>
+    <link rel="stylesheet" href="../global.css">
+    <link rel="stylesheet" href="../assets/css/landing.css">
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.5.1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+</head>
 <body>
-    <!-- Top Bar -->
+    <!-- Top bar -->
     <header class="top-bar">
         <div class="profile-header">
             <div class="avatar">👨‍💻</div>
@@ -10,28 +21,49 @@
         </div>
         <div class="top-icons">
             <button class="icon-btn" title="Notifications">🔔</button>
-            <button class="icon-btn" title="Home">🏠</button>
+            <button class="icon-btn" title="Home" onclick="window.location.href='dashboard.html'">🏠</button>
         </div>
     </header>
 
-    <!-- Main Content -->
+    <!-- Main content -->
     <div class="main-container">
-        <!-- Room Management Title -->
+        <!-- Room management title -->
         <h1 class="section-title">Room Management</h1>
         
         <div class="content-wrapper">
-            <!-- Left Side -->
+            <!-- Left side -->
             <div class="left-side">
-                <!-- Create Room Panel -->
+                <!-- Create room panel -->
                 <div class="create-room-panel">
                     <h2 class="panel-header">Create a Room</h2>
-                    <div class="input-button-wrapper">
-                        <input type="text" id="roomNameInput" class="text-input" placeholder="Enter Room Name">
-                        <button class="btn-create" id="createRoomBtn">Create Room</button>
+                    
+                    <label class="input-label">Enter Room Name</label>
+                    <input type="text" id="roomNameInput" class="text-input">
+                    
+                    <div class="advanced-settings">
+                        <div class="settings-header" id="advancedToggle">
+                            <span class="dropdown-icon" id="dropdownIcon"></span>
+                            <span>Advanced Settings</span>
+                        </div>
+                        <div class="settings-content" id="settingsContent">
+                            <label class="checkbox-row">
+                                <input type="checkbox" id="maxMembersCheck">
+                                <span class="custom-checkbox"></span>
+                                <span>Set Maximum Members</span>
+                                <input type="number" id="maxMembersInput" class="inline-number" placeholder="#" disabled>
+                            </label>
+                            <label class="checkbox-row">
+                                <input type="checkbox" id="adminOnlyCheck">
+                                <span class="custom-checkbox"></span>
+                                <span>Admin Only</span>
+                            </label>
+                        </div>
                     </div>
+
+                    <button class="btn-create" id="createRoomBtn">Create Room</button>
                 </div>
 
-                <!-- Team-ups Panel -->
+                <!-- Team-ups panel -->
                 <div class="teamups-panel">
                     <h2 class="panel-title">Team-ups</h2>
                     
@@ -41,23 +73,19 @@
                             <input type="text" id="roomIdInput" class="search-input" placeholder="Enter Room ID">
                             <span class="search-icon"></span>
                         </div>
-                        <button class="btn-search" id="searchRoomBtn">Search</button>
+                        <button class="btn-search" id="searchRoomBtn">Join Room</button>
                     </div>
                     
                     <div id="roomSearchResult" class="search-result">
-                        <div class="team-result-item">
-                            <div class="team-result-info">
-                                <!-- Rooms will be populated here -->
-                            </div>
-                        </div>
+                        <!-- Search results will appear here -->
                     </div>
                 </div>
             </div>
 
-            <!-- Right Side -->
+            <!-- Right side -->
             <div class="right-side-wrapper">
                 <div class="right-side-top">
-                    <!-- Your Rooms Panel -->
+                    <!-- Your rooms panel -->
                     <div class="your-rooms-panel">
                         <h2 class="panel-title">Your Rooms</h2>
                         <div id="roomsList" class="rooms-list">
@@ -65,7 +93,7 @@
                         </div>
                     </div>
 
-                    <!-- Team Members Panel -->
+                    <!-- Team members panel -->
                     <div class="team-members-panel">
                         <h2 class="panel-title">Team Members</h2>
                         <div class="search-wrapper-members">
@@ -73,12 +101,12 @@
                             <span class="search-icon-members"></span>
                         </div>
                         <div id="teamMembersList" class="members-list">
-                            <!-- Members will be populated here -->
+                            <!-- Team members will be populated here -->
                         </div>
                     </div>
                 </div>
 
-                <!-- Add Member Section (below Your Rooms and Team Members) -->
+                <!-- Add member section -->
                 <div class="add-member-panel">
                     <h2 class="panel-header">Add Members</h2>
                     <div class="add-member-content">
@@ -98,19 +126,21 @@
                             <label class="input-label">Add Member</label>
                             <input type="text" id="addMemberInput" class="add-member-input" placeholder="Enter Username">
                         </div>
-                        <button class="btn-add-member" id="addMemberBtn">Add Member</button>
                     </div>
+                    <button class="btn-add-member" id="addMemberBtn">Add Member</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Confirmation Modal -->
+    <!-- Confirmation modal -->
     <div id="confirmModal" class="modal" style="display: none;">
         <div class="modal-content">
             <p id="modalMessage">Room created successfully!</p>
             <button class="btn-ok" id="modalOkBtn">OK</button>
         </div>
     </div>
+
+    <script src="../assets/js/landing.js"></script>
 </body>
 </html>

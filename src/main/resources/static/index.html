@@ -4,15 +4,63 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MeeTeams</title>
-    <link rel="stylesheet" href="global.css">
-    <link rel="stylesheet" id="page-css" href="">
+    <script>
+        // Simple router for multi-page application
+        function debugLog(section, message, data = null) {
+            const timestamp = new Date().toISOString();
+            console.log(`[${timestamp}] [INDEX-${section}] ${message}`, data || '');
+        }
 
-    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.5.1/dist/sockjs.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+        function checkAuth() {
+            debugLog('AUTH', 'Checking authentication');
+            const authToken = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
+            const isAuthenticated = !!authToken;
+            debugLog('AUTH', 'Authentication status', {
+                isAuthenticated,
+                hasSessionToken: !!sessionStorage.getItem('authToken'),
+                hasLocalToken: !!localStorage.getItem('authToken')
+            });
+            return isAuthenticated;
+        }
+
+        function route() {
+            debugLog('ROUTE', 'Routing user');
+            
+            const isAuthenticated = checkAuth();
+            const path = window.location.pathname;
+            const hash = window.location.hash;
+            
+            debugLog('ROUTE', 'Current location', {
+                path,
+                hash,
+                isAuthenticated
+            });
+
+            // If on index.html, redirect based on auth
+            if (path.endsWith('index.html') || path === '/' || path.endsWith('/')) {
+                if (isAuthenticated) {
+                    debugLog('ROUTE', 'Authenticated user, redirecting to landing');
+                    window.location.href = 'pages/landing.html';
+                } else {
+                    debugLog('ROUTE', 'Unauthenticated user, redirecting to auth');
+                    window.location.href = 'pages/auth.html';
+                }
+            }
+        }
+
+        // Run on page load
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', route);
+        } else {
+            route();
+        }
+    </script>
 </head>
 <body>
-    <main id="app-content"></main>
-    
-    <script src="app.js"></script>
+    <div style="display: flex; justify-content: center; align-items: center; min-height: 100vh;">
+        <div style="text-align: center;">
+            <div style="font-size: 2rem;">🔄 Redirecting...</div>
+        </div>
+    </div>
 </body>
 </html>
