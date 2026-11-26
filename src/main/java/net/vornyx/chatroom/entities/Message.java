@@ -2,6 +2,8 @@ package net.vornyx.chatroom.entities;
 
 import java.time.LocalDateTime;
 
+import org.hibernate.annotations.CreationTimestamp;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
@@ -35,6 +37,9 @@ public class Message {
     private Message replyTo;
     
 
+    // Set by Hibernate on insert; nothing else assigns it, so it was saved as NULL
+    @CreationTimestamp
+    @Column(updatable = false)
     private LocalDateTime created_at;
 
     public Message() {
