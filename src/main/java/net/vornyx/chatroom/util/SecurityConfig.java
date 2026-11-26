@@ -45,8 +45,8 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
             .requestMatchers("/auth/**", "/ws/**").permitAll()
-            .requestMatchers("/rooms/**").authenticated() // allow login & register
-            .anyRequest().permitAll() // protect the rest
+            .requestMatchers("/rooms/**", "/api/**").authenticated()
+            .anyRequest().permitAll() // static frontend pages
             )
             .userDetailsService(userDetailsService)
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

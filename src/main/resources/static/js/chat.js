@@ -275,7 +275,7 @@ function createMessageElement(msg) {
     
     let html = `
         <div class="message-header">
-            <span class="message-username">${msg.username}</span>
+            <span class="message-username">${escapeHtml(msg.username)}</span>
             <span class="message-timestamp">${formatTime(msg.timestamp)}</span>
         </div>
     `;
@@ -309,7 +309,7 @@ function createMessageElement(msg) {
             const userReacted = users.includes(currentUsername);
             html += `
                 <div class="reaction ${userReacted ? 'user-reacted' : ''}" onclick="toggleReaction(${msg.id}, '${emoji}')">
-                    <span>${emoji}</span>
+                    <span>${escapeHtml(emoji)}</span>
                     <span class="reaction-count">${users.length}</span>
                 </div>
             `;

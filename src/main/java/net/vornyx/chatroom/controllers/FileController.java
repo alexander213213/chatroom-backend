@@ -1,18 +1,19 @@
 package net.vornyx.chatroom.controllers;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,6 +25,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.servlet.http.HttpServletRequest;
 import net.vornyx.chatroom.dto.FileMetadata;
+import net.vornyx.chatroom.entities.RoomMemberId;
+import net.vornyx.chatroom.entities.User;
+import net.vornyx.chatroom.repositories.RoomMemberRepository;
 import net.vornyx.chatroom.util.FileStorageService;
 
 @RestController
@@ -33,6 +37,18 @@ public class FileController {
     @Autowired
     private FileStorageService fileStorageService;
 
+    @Autowired
+    private RoomMemberRepository roomMemberRepository;
+
+    private boolean isMember(User user, Long roomNum) {
+        return roomNum <= Integer.MAX_VALUE
+                && roomMemberRepository.existsById(new RoomMemberId(user.getId(), roomNum.intValue()));
+    }
+
+    private static ResponseEntity<Map<String, String>> forbidden() {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Not a member of this room"));
+    }
+
     /**
      * Upload attachment to a specific room
      * Max size: 200MB
@@ -41,8 +57,11 @@ public class FileController {
     public ResponseEntity<?> uploadAttachment(
             @PathVariable Long roomNum,
             @RequestParam("file") MultipartFile file,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal User userDetails) {
         
+        if (!isMember(userDetails, roomNum)) {
+            return forbidden();
+        }
         try {
             // Validate file size (200MB = 200 * 1024 * 1024 bytes)
             if (file.getSize() > 200 * 1024 * 1024) {
@@ -76,8 +95,11 @@ public class FileController {
     @GetMapping("/rooms/{roomNum}/attachments")
     public ResponseEntity<?> listAttachments(
             @PathVariable Long roomNum,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal User userDetails) {
         
+        if (!isMember(userDetails, roomNum)) {
+            return forbidden();
+        }
         try {
             List<FileMetadata> attachments = fileStorageService.listAttachments(roomNum);
             
@@ -101,9 +123,12 @@ public class FileController {
     public ResponseEntity<Resource> downloadAttachment(
             @PathVariable Long roomNum,
             @PathVariable String filename,
-            @AuthenticationPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal User userDetails,
             HttpServletRequest request) {
         
+        if (!isMember(userDetails, roomNum)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         try {
             Resource resource = fileStorageService.loadAttachment(filename, roomNum);
             
@@ -121,8 +146,8 @@ public class FileController {
             
             return ResponseEntity.ok()
                     .contentType(MediaType.parseMediaType(contentType))
-                    .header(HttpHeaders.CONTENT_DISPOSITION, 
-                            "attachment; filename=\"" + resource.getFilename() + "\"")
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            ContentDisposition.attachment().filename(resource.getFilename(), StandardCharsets.UTF_8).build().toString())
                     .body(resource);
                     
         } catch (Exception e) {
@@ -137,7 +162,7 @@ public class FileController {
     @PostMapping("/avatars")
     public ResponseEntity<?> uploadAvatar(
             @RequestParam("file") MultipartFile file,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal User userDetails) {
         
         try {
             // Validate file is an image
@@ -180,7 +205,7 @@ public class FileController {
     @GetMapping("/avatars/{username}")
     public ResponseEntity<Resource> getAvatar(
             @PathVariable String username,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal User userDetails) {
         
         try {
             Resource resource = fileStorageService.loadAvatar(username);
@@ -202,8 +227,11 @@ public class FileController {
     public ResponseEntity<?> deleteAttachment(
             @PathVariable Long roomNum,
             @PathVariable String filename,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal User userDetails) {
         
+        if (!isMember(userDetails, roomNum)) {
+            return forbidden();
+        }
         try {
             fileStorageService.deleteAttachment(filename, roomNum);
             return ResponseEntity.ok(Map.of("message", "File deleted successfully"));
@@ -218,7 +246,7 @@ public class FileController {
      * Delete user's avatar
      */
     @DeleteMapping("/avatars")
-    public ResponseEntity<?> deleteAvatar(@AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<?> deleteAvatar(@AuthenticationPrincipal User userDetails) {
         
         try {
             String username = userDetails.getUsername();
