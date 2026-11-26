@@ -1,0 +1,8 @@
+.git
+.claude
+.vscode
+.idea
+target
+*.md
+compose.yaml
+.env

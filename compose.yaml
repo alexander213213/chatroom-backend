@@ -1,0 +1,41 @@
+# Run everything: docker compose up -d --build   then open http://localhost:8081
+# Optional overrides go in a .env file next to this one (DB_PASSWORD, JWT_SECRET, APP_PORT).
+services:
+  db:
+    image: mariadb:11
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: chatappdb
+      MARIADB_USER: chatapp
+      # shortcut: default password is fine because the db port is not published; set DB_PASSWORD before exposing it
+      MARIADB_PASSWORD: ${DB_PASSWORD:-chatapp}
+      MARIADB_RANDOM_ROOT_PASSWORD: "1"
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:mariadb://db:3306/chatappdb
+      DB_USERNAME: chatapp
+      DB_PASSWORD: ${DB_PASSWORD:-chatapp}
+      JWT_SECRET: ${JWT_SECRET:-}
+      CHATROOM_STORAGE_ROOT: /data
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+    ports:
+      - "${APP_PORT:-8081}:8081"
+    volumes:
+      - app-data:/data
+
+volumes:
+  db-data:
+  app-data:
