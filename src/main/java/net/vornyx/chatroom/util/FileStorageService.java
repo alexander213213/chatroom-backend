@@ -24,7 +24,7 @@ import jakarta.annotation.PostConstruct;
 @Service
 public class FileStorageService {
 
-    @Value("${file.upload.base-dir:/var/lib/chatroom}")
+    @Value("${chatroom.storage.root:/var/lib/chatroom}")
     private String baseDir;
 
     private Path roomsLocation;
@@ -47,19 +47,21 @@ public class FileStorageService {
      * Store attachment in room-specific directory
      */
     public String storeAttachment(MultipartFile file, Long roomNum) throws IOException {
-        String filename = StringUtils.cleanPath(file.getOriginalFilename());
-        
-        // Security check: prevent path traversal
-        if (filename.contains("..")) {
-            throw new IOException("Invalid filename: " + filename);
+        String original = file.getOriginalFilename();
+        if (original == null || original.isBlank()) {
+            throw new IOException("Missing filename");
         }
+        // Keep only the last path segment so "../x" or "/etc/x" can't escape the room folder
+        Path namePath = Paths.get(StringUtils.cleanPath(original)).getFileName();
+        if (namePath == null) {
+            throw new IOException("Invalid filename: " + original);
+        }
+        String filename = namePath.toString();
 
-        // Create room directory if it doesn't exist
         Path roomPath = roomsLocation.resolve(roomNum.toString());
         Files.createDirectories(roomPath);
 
-        // Save file
-        Path targetLocation = roomPath.resolve(filename);
+        Path targetLocation = resolveInside(roomPath, filename);
         Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
 
         return filename;
@@ -70,7 +72,7 @@ public class FileStorageService {
      */
     public Resource loadAttachment(String filename, Long roomNum) throws IOException {
         try {
-            Path file = roomsLocation.resolve(roomNum.toString()).resolve(filename).normalize();
+            Path file = resolveInside(roomsLocation.resolve(roomNum.toString()), filename);
             Resource resource = new UrlResource(file.toUri());
             
             if (resource.exists() && resource.isReadable()) {
@@ -100,8 +102,8 @@ public class FileStorageService {
 
         // Save as PNG
         String filename = username + ".png";
-        Path targetLocation = avatarsLocation.resolve(filename);
-        
+        Path targetLocation = resolveInside(avatarsLocation, filename);
+
         ImageIO.write(resizedImage, "PNG", targetLocation.toFile());
 
         return filename;
@@ -113,7 +115,7 @@ public class FileStorageService {
     public Resource loadAvatar(String username) throws IOException {
         try {
             String filename = username + ".png";
-            Path file = avatarsLocation.resolve(filename).normalize();
+            Path file = resolveInside(avatarsLocation, filename);
             Resource resource = new UrlResource(file.toUri());
             
             if (resource.exists() && resource.isReadable()) {
@@ -131,7 +133,7 @@ public class FileStorageService {
      * Delete attachment from room
      */
     public void deleteAttachment(String filename, Long roomNum) throws IOException {
-        Path file = roomsLocation.resolve(roomNum.toString()).resolve(filename).normalize();
+        Path file = resolveInside(roomsLocation.resolve(roomNum.toString()), filename);
         Files.deleteIfExists(file);
     }
 
@@ -140,7 +142,7 @@ public class FileStorageService {
      */
     public void deleteAvatar(String username) throws IOException {
         String filename = username + ".png";
-        Path file = avatarsLocation.resolve(filename).normalize();
+        Path file = resolveInside(avatarsLocation, filename);
         Files.deleteIfExists(file);
     }
 
@@ -202,6 +204,18 @@ public class FileStorageService {
         fileList.sort((a, b) -> b.getUploadedAt().compareTo(a.getUploadedAt()));
         
         return fileList;
+    }
+
+    /**
+     * Resolve name under base and refuse anything that lands outside it (path traversal).
+     */
+    static Path resolveInside(Path base, String name) throws IOException {
+        Path root = base.toAbsolutePath().normalize();
+        Path target = root.resolve(name).normalize();
+        if (name.isBlank() || !target.getParent().equals(root)) {
+            throw new IOException("Invalid filename: " + name);
+        }
+        return target;
     }
 
     /**

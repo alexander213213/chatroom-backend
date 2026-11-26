@@ -61,6 +61,10 @@ class ChatroomController {
 
     @PostMapping("")
     public ResponseEntity<String> newRoom(@AuthenticationPrincipal User user, @RequestBody Room room) {
+        if (room.getName() == null || room.getName().isBlank() || room.getName().length() > 100) {
+            return ResponseEntity.badRequest().body("Room name must be 1-100 characters");
+        }
+        room.setId(null); // never let a client overwrite an existing room
         room.setUser(user);
         Room savedRoom = roomRepository.save(room);
  
@@ -79,17 +83,23 @@ class ChatroomController {
     }
 
     @GetMapping("/{roomId}")
-    public List<String> userList(@AuthenticationPrincipal User user, @PathVariable Integer roomId) {
-        Room room = roomRepository.findById(roomId).orElseThrow(() -> new RuntimeException("Room not found"));
+    public ResponseEntity<List<String>> userList(@AuthenticationPrincipal User user, @PathVariable Integer roomId) {
+        Room room = roomRepository.findById(roomId).orElse(null);
+        if (room == null || !roomMemberRepository.existsByUserAndRoom(user, room)) {
+            return ResponseEntity.status(403).build();
+        }
 
         List<RoomMember> roomMembers = roomMemberRepository.findByRoom(room);
         List<String> usernameList = roomMembers.stream().map(roomMember -> roomMember.getUser().getUsername()).toList();
-        return usernameList;
+        return ResponseEntity.ok(usernameList);
     }
 
     @PostMapping("/{roomId}/invite")
     public ResponseEntity<?> invite(@AuthenticationPrincipal User user, @PathVariable Integer roomId, @RequestBody List<String> usernames) {
-        Room room = roomRepository.findById(roomId).orElseThrow(() -> new RuntimeException("Room not found"));
+        Room room = roomRepository.findById(roomId).orElse(null);
+        if (room == null || !roomMemberRepository.existsByUserAndRoom(user, room)) {
+            return ResponseEntity.status(403).body("Only room members can invite");
+        }
         List<User> userList = userRepository.findAllByUsernameIn(usernames);
         Set<User> existingMembers = roomMemberRepository.findByRoom(room)
                 .stream()
@@ -113,11 +123,10 @@ class ChatroomController {
             @RequestParam(required = false) Integer before,
             @RequestParam(defaultValue = "20") int limit
     ) {
-        Room room = roomRepository.findById(roomId)
-                .orElseThrow(() -> new RuntimeException("Room not found"));
+        Room room = roomRepository.findById(roomId).orElse(null);
+        limit = Math.max(1, Math.min(limit, 100));
 
-        boolean isMember = roomMemberRepository.existsByUserAndRoom(user, room);
-        if (!isMember) {
+        if (room == null || !roomMemberRepository.existsByUserAndRoom(user, room)) {
             return ResponseEntity.status(403).body(null);
         }
 
@@ -165,11 +174,10 @@ class ChatroomController {
             @RequestParam(required = false) Integer before,
             @RequestParam(defaultValue = "20") int limit
     ) {
-        Room room = roomRepository.findById(roomId)
-                .orElseThrow(() -> new RuntimeException("Room not found"));
+        Room room = roomRepository.findById(roomId).orElse(null);
+        limit = Math.max(1, Math.min(limit, 100));
 
-        boolean isMember = roomMemberRepository.existsByUserAndRoom(user, room);
-        if (!isMember) {
+        if (room == null || !roomMemberRepository.existsByUserAndRoom(user, room)) {
             return ResponseEntity.status(403).body(null);
         }
 
@@ -202,10 +210,17 @@ class ChatroomController {
 
     @DeleteMapping("/{roomId}")
     public ResponseEntity<String> deleteRoom(@AuthenticationPrincipal User user, @PathVariable Integer roomId) {
-        if (!user.getId().equals(roomRepository.findById(roomId).get().getUser().getId())) {
+        Room room = roomRepository.findById(roomId).orElse(null);
+        if (room == null) {
+            return ResponseEntity.status(404).body("Room not found");
+        }
+        if (!user.getId().equals(room.getUser().getId())) {
             return ResponseEntity.status(403).body("User is not the owner of room");
         }
+        reactionRepository.deleteAllInRoom(roomId);
+        messageRepository.clearRepliesInRoom(roomId);
         messageRepository.deleteAllByMessageId_RoomId(roomId);
+        noteRepository.deleteAllByNoteId_RoomId(roomId);
         roomMemberRepository.deleteAllById_RoomId(roomId);
         roomRepository.deleteById(roomId);
         return ResponseEntity.ok("Room successfully deleted");
